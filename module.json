@@ -1,0 +1,12 @@
+{
+  "name": "iot-task-3",
+  "version": "0.0.0",
+  "bin": "./source",
+  "private": true,
+  "description": "AES-128 EBC encrypted communication over BLE to enable and disable microbit services.",
+  "author": "Jonathan White and Gwyn Wilkinson",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "microbit": "lancaster-university/microbit"
+  }
+}
