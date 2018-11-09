@@ -8,6 +8,8 @@ MicroBitPin P1(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_DIGITAL);
 
 int connected = 0;
 
+char serialBuffer[33];
+
 /***********************************************************
  *
  * Function: onConnected()
@@ -30,6 +32,11 @@ void onConnected(MicroBitEvent e)
 
         // Wait until we have read the message from the UART
         ManagedString msg = uart->readUntil(eom);
+
+        // Debug printout for the received message
+        sprintf(serialBuffer, "%s\n", msg.toCharArray());
+        uBit.serial.send("Received message: ");
+        uBit.serial.send(serialBuffer);
 
         // TO-DO - Read the ping from the Microbit buttons
 
@@ -137,8 +144,6 @@ static int test_decrypt_ecb(void)
     uint8_t in[]  = { 0x09, 0x03, 0x85, 0xa5, 0x66, 0xf9, 0x7f, 0x47, 0x93, 0xde, 0x85, 0xd7, 0x0b, 0x36, 0x86, 0x4d };
 
     struct AES_ctx ctx;
-    char serialBuffer[18];
-
 
     AES_init_ctx(&ctx, key);
     AES_ECB_decrypt(&ctx, in);
@@ -147,12 +152,12 @@ static int test_decrypt_ecb(void)
         sprintf( ( serialBuffer + (2*offset)), "%02x", in[offset]&0xff);
     }
 
-    sprintf(serialBuffer + 16 , "\n");
-    uBit.serial.send("Decoded String = ");
-    uBit.serial.send((char*)in);
-    uBit.display.scrollAsync(serialBuffer);
-
-    uBit.serial.send("\n");
+//    sprintf(serialBuffer + 16 , "\n");
+//    uBit.serial.send("Decoded String = ");
+//    uBit.serial.send((char*)in);
+//    uBit.display.scrollAsync(serialBuffer);
+//
+//    uBit.serial.send("\n");
 }
 
 /***********************************************************
@@ -180,10 +185,8 @@ int main()
     // Note GATT table size increased from default in MicroBitConfig.h
     // #define MICROBIT_SD_GATT_TABLE_SIZE             0x500
     uart = new MicroBitUARTService(*uBit.ble, 32, 32);
-    uBit.display.scrollAsync("IoT BLE test");
-
-    // Temp code to test the decrypt routines
-    test_decrypt_ecb();
+    uBit.display.scrollAsync("IoT BLE");
+    uBit.serial.send("Microbit initialised\n");
 
     // If main exits, there may still be other fibers running or registered event handlers etc.
     // Simply release this fiber, which will mean we enter the scheduler. Worse case, we then
