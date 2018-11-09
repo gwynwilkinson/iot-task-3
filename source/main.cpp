@@ -8,18 +8,40 @@ MicroBitPin P1(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_DIGITAL);
 
 int connected = 0;
 
+/***********************************************************
+ *
+ * Function: onConnected()
+ *
+ * Description: Main program loop that is executed whilst
+ *              BLE is in a connected state
+ *
+ **********************************************************/
 void onConnected(MicroBitEvent e)
 {
     uBit.display.scroll("C");
 
     connected = 1;
 
-    // my client will send ASCII strings terminated with the colon character
+    // The Android client will send ASCII strings terminated with the colon character
     ManagedString eom(":");
 
+    // Main program loop.
     while (connected == 1) {
+
+        // Wait until we have read the message from the UART
         ManagedString msg = uart->readUntil(eom);
 
+        // TO-DO - Read the ping from the Microbit buttons
+
+        // TO-DO - Combine the pin and the salt into the DPK
+
+        // TO-DO - Decrypt the incoming message
+
+        // TO-DO - Validate the decrypted message is valid
+
+        // TO-DO - Tidy up the below code into another function to handle the protocol message
+
+        // Check the received PIN and control the relevant device.
         if (msg == "999")
         {
             P1.setDigitalValue(1);
@@ -46,74 +68,68 @@ void onConnected(MicroBitEvent e)
 
 }
 
+/***********************************************************
+ *
+ * Function: onDisconnected()
+ *
+ * Description: Handles the BLE disconnection event
+ *
+ **********************************************************/
 void onDisconnected(MicroBitEvent e)
 {
     uBit.display.scroll("D");
     connected = 0;
 }
 
+/***********************************************************
+ *
+ * Function: onButtonA()
+ *
+ * Description: Handler for Button A event
+ *
+ **********************************************************/
 void onButtonA(MicroBitEvent e)
 {
     if (connected == 0) {
         uBit.display.scroll("NC");
         return;
     }
-    uart->send("Button A");
     uBit.display.scroll("Button A");
 }
 
+/***********************************************************
+ *
+ * Function: onButtonB()
+ *
+ * Description: Handler for Button B event
+ *
+ **********************************************************/
 void onButtonB(MicroBitEvent e)
 {
     if (connected == 0) {
         uBit.display.scroll("NC");
         return;
     }
-    uart->send("Button B");
     uBit.display.scroll("Button B");
 }
 
+/***********************************************************
+ *
+ * Function: onButtonAB()
+ *
+ * Description: Handler for both buttons event
+ *
+ **********************************************************/
 void onButtonAB(MicroBitEvent e)
 {
     if (connected == 0) {
         uBit.display.scroll("NC");
         return;
     }
-    uart->send("Both Buttons");
     uBit.display.scroll("Both Buttons");
 }
 
-
-static void test_encrypt_ecb_verbose(void)
-{
-    // Example of more verbose verification
-
-    uint8_t i;
-    char serialBuffer[50];
-
-    // 128bit key
-    uint8_t key[16] =        { (uint8_t) 0x30, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00,
-                               (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00 };
-    // 512bit text
-    uint8_t plain_text[16] = { (uint8_t) 0x55, (uint8_t) 0x57, (uint8_t) 0x45, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00,
-                               (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00, (uint8_t) 0x00 };
-
-
-    struct AES_ctx ctx;
-    AES_init_ctx(&ctx, key);
-
-
-    AES_ECB_encrypt(&ctx, plain_text );
-    for( int offset = 0; offset < 16; offset++) {
-        sprintf( ( serialBuffer + (2*offset)), "%02x", plain_text[offset]&0xff);
-    }
-
-    sprintf(serialBuffer + 16 , "\n");
-    uBit.serial.send("AES-128 Cipher = ");
-    uBit.serial.send(serialBuffer);
-    uBit.display.scrollAsync((char*)serialBuffer);
-
-}
-
+// TO-DO - Remove this code once we have the main loop decryption in. Reference code for Jon at the moment.
 static int test_decrypt_ecb(void)
 {
 
@@ -122,6 +138,7 @@ static int test_decrypt_ecb(void)
 
     struct AES_ctx ctx;
     char serialBuffer[18];
+
 
     AES_init_ctx(&ctx, key);
     AES_ECB_decrypt(&ctx, in);
@@ -133,11 +150,18 @@ static int test_decrypt_ecb(void)
     sprintf(serialBuffer + 16 , "\n");
     uBit.serial.send("Decoded String = ");
     uBit.serial.send((char*)in);
-    uBit.display.scrollAsync((char*)in);
+    uBit.display.scrollAsync(serialBuffer);
 
     uBit.serial.send("\n");
 }
 
+/***********************************************************
+ *
+ * Function: main()
+ *
+ * Description: Main program entry
+ *
+ **********************************************************/
 int main()
 {
     // Initialise the micro:bit runtime.
@@ -158,7 +182,7 @@ int main()
     uart = new MicroBitUARTService(*uBit.ble, 32, 32);
     uBit.display.scrollAsync("IoT BLE test");
 
-    test_encrypt_ecb_verbose();
+    // Temp code to test the decrypt routines
     test_decrypt_ecb();
 
     // If main exits, there may still be other fibers running or registered event handlers etc.

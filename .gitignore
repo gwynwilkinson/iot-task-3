@@ -1,1 +1,11 @@
 build/
+a.out
+*~
+CMake*
+.idea/
+link
+cipher
+test.elf
+test.map
+test.o
+aes.o
