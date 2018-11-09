@@ -8,7 +8,7 @@ MicroBitPin P1(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_DIGITAL);
 
 int connected = 0;
 
-char serialBuffer[33];
+char serialBuffer[40];
 
 /***********************************************************
  *
@@ -21,6 +21,7 @@ char serialBuffer[33];
 void onConnected(MicroBitEvent e)
 {
     uBit.display.scroll("C");
+    uBit.serial.send ("BLE Connected\n");
 
     connected = 1;
 
@@ -31,12 +32,12 @@ void onConnected(MicroBitEvent e)
     while (connected == 1) {
 
         // Wait until we have read the message from the UART
-        ManagedString msg = uart->readUntil(eom);
+        int charsRead = uart->read((uint8_t*)serialBuffer, 32, SYNC_SLEEP );
 
         // Debug printout for the received message
-        sprintf(serialBuffer, "%s\n", msg.toCharArray());
-        uBit.serial.send("Received message: ");
+        uBit.serial.send("BLE Received message: ");
         uBit.serial.send(serialBuffer);
+        uBit.serial.send("\n");
 
         // TO-DO - Read the PIN from the Microbit buttons
 
@@ -48,29 +49,29 @@ void onConnected(MicroBitEvent e)
 
         // TO-DO - Tidy up the below code into another function to handle the protocol message
 
-        // Check the received PIN and control the relevant device.
-        if (msg == "999")
-        {
-            P1.setDigitalValue(1);
-            uart->send("LED On");
-            uBit.display.scrollAsync("LED on");
-
-        } else if ( msg == "998") {
-            P1.setDigitalValue(0);
-            uart->send("LED Off");
-            uBit.display.scrollAsync("LED off");
-        } else {
-            char sendBuffer[50];
-
-            sprintf(sendBuffer, "Unknown : %s", msg.toCharArray());
-
-            uBit.serial.send(sendBuffer);
-
-            uart->send(sendBuffer);
-
-            uBit.display.scrollAsync("???: ");
-            uBit.display.scrollAsync(msg);
-        }
+//        // Check the received PIN and control the relevant device.
+//        if (msg == "999")
+//        {
+//            P1.setDigitalValue(1);
+//            uart->send("LED On");
+//            uBit.display.scrollAsync("LED on");
+//
+//        } else if ( msg == "998") {
+//            P1.setDigitalValue(0);
+//            uart->send("LED Off");
+//            uBit.display.scrollAsync("LED off");
+//        } else {
+////            char sendBuffer[50];
+////
+////            sprintf(sendBuffer, "Unknown : %s", msg.toCharArray());
+////
+////            uBit.serial.send(sendBuffer);
+////
+////            uart->send(sendBuffer);
+//
+//            uBit.display.scrollAsync("???: ");
+//            uBit.display.scrollAsync(msg);
+//        }
     }
 
 }
@@ -85,6 +86,7 @@ void onConnected(MicroBitEvent e)
 void onDisconnected(MicroBitEvent e)
 {
     uBit.display.scroll("D");
+    uBit.serial.send ("BLE Disconnected\n");
     connected = 0;
 }
 
@@ -101,7 +103,7 @@ void onButtonA(MicroBitEvent e)
         uBit.display.scroll("NC");
         return;
     }
-    uBit.display.scroll("Button A");
+    uBit.display.scroll(uart->rxBufferedSize());
 }
 
 /***********************************************************
