@@ -38,9 +38,9 @@ void onConnected(MicroBitEvent e)
         uBit.serial.send("Received message: ");
         uBit.serial.send(serialBuffer);
 
-        // TO-DO - Read the ping from the Microbit buttons
+        // TO-DO - Read the PIN from the Microbit buttons
 
-        // TO-DO - Combine the pin and the salt into the DPK
+        // TO-DO - Combine the PIN and the salt into the DPK
 
         // TO-DO - Decrypt the incoming message
 
