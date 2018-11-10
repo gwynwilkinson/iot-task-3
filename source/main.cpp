@@ -1,6 +1,7 @@
 #include "MicroBit.h"
 #include "MicroBitUARTService.h"
 #include "aes.h"
+#include "utility.h"
 
 MicroBit uBit;
 MicroBitUARTService *uart;
@@ -8,7 +9,48 @@ MicroBitPin P1(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_DIGITAL);
 
 int connected = 0;
 
-char serialBuffer[40];
+char uartBuffer[33];
+char decodedAsciiMsg[33];
+
+/***********************************************************
+ *
+ * Function: decryptMessage()
+ *
+ * Description: Performs the decryption of the received
+ *              message over BLE
+ *
+ **********************************************************/
+void decryptMessage() {
+
+    struct AES_ctx ctx;
+    char hexBuffer[16];
+    char serialBuffer[33];
+    int i,j;
+
+    // TODO - remove the hard coded key and read from the microbit buttons
+    uint8_t key[] = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+    // Convert the uart buffer message from ASCII to binary
+    for (i = 0, j = 0; i < 32; j++, i += 2) {
+        hexBuffer[j] = ASCII_TO_BCD(&(uartBuffer[i]));
+    }
+
+    // Decrypt the message. Output overwrites the input 'hexBuffer'
+    AES_init_ctx(&ctx, key);
+    AES_ECB_decrypt(&ctx, (uint8_t*)hexBuffer);
+
+    // Copy the output message back to the global buffer 'decodedAsciiMsg'
+    memcpy( &decodedAsciiMsg, &hexBuffer, 32 );
+
+    // Terminate the string
+    // TODO - Change this to 32 when we are using all the buffer instead of 3 digit PIN
+    decodedAsciiMsg[4] = 0;
+
+    uBit.serial.send("Decoded String = ");
+    uBit.serial.send(decodedAsciiMsg);
+
+
+}
 
 /***********************************************************
  *
@@ -32,11 +74,14 @@ void onConnected(MicroBitEvent e)
     while (connected == 1) {
 
         // Wait until we have read the message from the UART
-        int charsRead = uart->read((uint8_t*)serialBuffer, 32, SYNC_SLEEP );
+        int charsRead = uart->read((uint8_t*)uartBuffer, 32, SYNC_SLEEP );
+
+        // Terminate the string correctly
+        uartBuffer[32] = '\0';
 
         // Debug printout for the received message
         uBit.serial.send("BLE Received message: ");
-        uBit.serial.send(serialBuffer);
+        uBit.serial.send(uartBuffer);
         uBit.serial.send("\n");
 
         // TO-DO - Read the PIN from the Microbit buttons
@@ -44,34 +89,34 @@ void onConnected(MicroBitEvent e)
         // TO-DO - Combine the PIN and the salt into the DPK
 
         // TO-DO - Decrypt the incoming message
+        decryptMessage();
 
         // TO-DO - Validate the decrypted message is valid
 
         // TO-DO - Tidy up the below code into another function to handle the protocol message
+        // Check the received PIN and control the relevant device.
+        if (strcmp(decodedAsciiMsg,"999"))
+        {
+            P1.setDigitalValue(1);
+            uart->send("LED On");
+            uBit.display.scrollAsync("LED on");
 
-//        // Check the received PIN and control the relevant device.
-//        if (msg == "999")
-//        {
-//            P1.setDigitalValue(1);
-//            uart->send("LED On");
-//            uBit.display.scrollAsync("LED on");
-//
-//        } else if ( msg == "998") {
-//            P1.setDigitalValue(0);
-//            uart->send("LED Off");
-//            uBit.display.scrollAsync("LED off");
-//        } else {
-////            char sendBuffer[50];
-////
-////            sprintf(sendBuffer, "Unknown : %s", msg.toCharArray());
-////
-////            uBit.serial.send(sendBuffer);
-////
-////            uart->send(sendBuffer);
-//
-//            uBit.display.scrollAsync("???: ");
-//            uBit.display.scrollAsync(msg);
-//        }
+        } else if ( strcmp(decodedAsciiMsg,"998")) {
+            P1.setDigitalValue(0);
+            uart->send("LED Off");
+            uBit.display.scrollAsync("LED off");
+        } else {
+
+            // Output debug information regarding the unknown PIN
+            char sendBuffer[50];
+            sprintf(sendBuffer, "Unknown PIN: %s", decodedAsciiMsg);
+            uBit.serial.send(sendBuffer);
+            uart->send(sendBuffer);
+
+            // Display the unknown PIN on the Microbit LEDs
+//            uBit.display.scrollAsync("?: ");
+//            uBit.display.scrollAsync(decodeAsciiMsg);
+        }
     }
 
 }
@@ -136,30 +181,6 @@ void onButtonAB(MicroBitEvent e)
         return;
     }
     uBit.display.scroll("Both Buttons");
-}
-
-// TO-DO - Remove this code once we have the main loop decryption in. Reference code for Jon at the moment.
-static int test_decrypt_ecb(void)
-{
-
-    uint8_t key[] = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    uint8_t in[]  = { 0x09, 0x03, 0x85, 0xa5, 0x66, 0xf9, 0x7f, 0x47, 0x93, 0xde, 0x85, 0xd7, 0x0b, 0x36, 0x86, 0x4d };
-
-    struct AES_ctx ctx;
-
-    AES_init_ctx(&ctx, key);
-    AES_ECB_decrypt(&ctx, in);
-
-    for( int offset = 0; offset < 16; offset++) {
-        sprintf( ( serialBuffer + (2*offset)), "%02x", in[offset]&0xff);
-    }
-
-//    sprintf(serialBuffer + 16 , "\n");
-//    uBit.serial.send("Decoded String = ");
-//    uBit.serial.send((char*)in);
-//    uBit.display.scrollAsync(serialBuffer);
-//
-//    uBit.serial.send("\n");
 }
 
 /***********************************************************
