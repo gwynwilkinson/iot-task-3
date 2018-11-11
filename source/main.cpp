@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "MicroBit.h"
 #include "MicroBitUARTService.h"
 #include "aes.h"
@@ -14,6 +15,24 @@ int connected = 0;
 
 char uartBuffer[33];
 char decodedAsciiMsg[33];
+
+static uint8_t hexlookup[] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39};
+static char charlookup[] = "0123456789";
+
+uint8_t hexKey[16] = {0x00, 0x00, 0x00, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B};
+unsigned char charKey[] = "000";
+int PIN = 0;
+
+bool fCollectDigit0;
+bool fCollectDigit1;
+bool fCollectDigit2;
+
+bool fPINCollected;
+
+unsigned int digit[3] = {0,0,0};
+
+bool fButtonAWait = false;
+bool fButtonBWait = false;
 
 /***********************************************************
  *
@@ -166,6 +185,60 @@ void onDisconnected(MicroBitEvent e)
     uBit.serial.send ("BLE Disconnected\n");
     connected = 0;
 }
+/***********************************************************
+ *
+ * Function: flashScreen()
+ *
+ * Description: Flashes the Microbit display three times
+ *
+ **********************************************************/
+void flashScreen(){
+  uBit.display.disable();
+  uBit.sleep(200);
+  uBit.display.enable();
+  uBit.sleep(200);
+  uBit.display.disable();
+  uBit.sleep(200);
+  uBit.display.enable();
+  uBit.sleep(200);
+  uBit.display.disable();
+  uBit.sleep(200);
+  uBit.display.enable();
+  uBit.sleep(200);
+}
+
+
+/***********************************************************
+ *
+ * Function: readPIN()
+ *
+ * Description: Sets our read flags so that we can input
+ *              the PIN using buttons A & B, and returns
+ *              the result
+ *
+ **********************************************************/
+int readPIN()
+{
+  // initialise all our flags - entering most significant digit first
+  fCollectDigit0=true;
+  fCollectDigit1=false;
+  fCollectDigit2=false;
+  fPINCollected = false;
+
+  // prompt user for input
+  uBit.display.print("Enter PIN");
+  uBit.sleep(200);
+  uBit.display.printChar(charlookup[digit[0]]);
+
+  // this while loop spins while the user enters the PIN using buttons A & B
+  while(!fPINCollected)
+  {
+    uBit.sleep(200);
+  }
+
+  // translates entered digits into decimal integer and returns to caller
+  return ((100*digit[0]) + (10*digit[1]) + digit[2]);
+}
 
 /***********************************************************
  *
@@ -179,8 +252,20 @@ void onButtonA(MicroBitEvent e)
     if (connected == 0) {
         uBit.display.scroll("NC");
         return;
+    }else{
+      if(!fButtonAWait){
+        if(fCollectDigit0){
+            digit[0]++;
+            uBit.display.printChar(charlookup[digit[0]]);
+          }else if(fCollectDigit1){
+            digit[1]++;
+            uBit.display.printChar(charlookup[digit[1]]);
+          }else if(fCollectDigit2){
+            digit[2]++;
+            uBit.display.printChar(charlookup[digit[2]]);
+        }
+      }
     }
-    uBit.display.scroll(uart->rxBufferedSize());
 }
 
 /***********************************************************
@@ -195,8 +280,76 @@ void onButtonB(MicroBitEvent e)
     if (connected == 0) {
         uBit.display.scroll("NC");
         return;
+    }else{
+        if(!fButtonBWait){
+            if(fCollectDigit0){
+
+                // disable both buttons and flash the entered digit 3 times
+                fButtonAWait = true;
+                fButtonBWait = true;
+                flashScreen();
+
+                // store the entered digit in all sorts of formats
+                hexKey[0] = hexlookup[digit[0]];
+                charKey[0] = charlookup[digit[0]];
+
+                // begin displaying the next digit to be entered
+                uBit.display.printChar(charlookup[digit[1]]);
+
+                // swap our flags so the second digit will be worked on
+                fCollectDigit0=false;
+                fCollectDigit1=true;
+
+                //re-enable both buttons
+                fButtonAWait = false;
+                fButtonBWait = false;
+
+            }else if(fCollectDigit1)
+            {
+                // disable both buttons and flash the entered digit 3 times
+                fButtonAWait = true;
+                fButtonBWait = true;
+                flashScreen();
+
+                // store the entered digit in all sorts of formats
+                hexKey[1] = hexlookup[digit[1]];
+                charKey[1] = charlookup[digit[1]];
+
+                // begin displaying the next digit to be entered
+                uBit.display.printChar(charlookup[digit[2]]);
+
+                // swap our flags so the third digit will be worked on
+                fCollectDigit1=false;
+                fCollectDigit2=true;
+
+                //re-enable both buttons
+                fButtonAWait = false;
+                fButtonBWait = false;
+
+            }else if(fCollectDigit2)
+            {
+                // disable both buttons and flash the entered digit 3 times
+                fButtonAWait = true;
+                fButtonBWait = true;
+                flashScreen();
+
+                // store the entered digit in all sorts of formats
+                hexKey[2] = hexlookup[digit[2]];
+                charKey[2] = charlookup[digit[2]];
+
+                // clear the microbit display now that PIN is entered
+                uBit.display.clear();
+
+                // swap our flags so we know PIN entry is complete
+                fCollectDigit2 = false;
+                fPINCollected = true;
+
+                //re-enable both buttons
+                fButtonAWait = false;
+                fButtonBWait = false;
+            }
+        }
     }
-    uBit.display.scroll("Button B");
 }
 
 /***********************************************************
@@ -214,6 +367,10 @@ void onButtonAB(MicroBitEvent e)
     }
     uBit.display.scroll("Both Buttons");
 }
+
+
+
+
 
 /***********************************************************
  *
@@ -241,12 +398,18 @@ int main()
     // #define MICROBIT_SD_GATT_TABLE_SIZE             0x500
     uart = new MicroBitUARTService(*uBit.ble, 32, 32);
     uBit.display.scrollAsync("IoT BLE");
+    uBit.sleep(200);
     uBit.serial.send("Microbit initialised\n");
+    if(connected != 0){
+        PIN = readPIN();
+        uBit.sleep(200);
+        ManagedString mStr(PIN);
+        uBit.display.scroll(mStr);
+        uBit.serial.send(mStr);
+    }
 
     // If main exits, there may still be other fibers running or registered event handlers etc.
     // Simply release this fiber, which will mean we enter the scheduler. Worse case, we then
     // sit in the idle task forever, in a power efficient sleep.
     release_fiber();
 }
-
-
