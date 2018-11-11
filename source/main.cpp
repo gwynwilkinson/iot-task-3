@@ -21,7 +21,6 @@ static char charlookup[] = "0123456789";
 
 uint8_t hexKey[16] = {0x00, 0x00, 0x00, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B};
 unsigned char charKey[] = "000";
-int PIN = 0;
 
 bool fCollectDigit0;
 bool fCollectDigit1;
@@ -33,6 +32,52 @@ unsigned int digit[3] = {0,0,0};
 
 bool fButtonAWait = false;
 bool fButtonBWait = false;
+
+
+/***********************************************************
+ *
+ * Function: readPIN()
+ *
+ * Description: Sets our read flags so that we can input
+ *              the PIN using buttons A & B, and returns
+ *              the result
+ *
+ **********************************************************/
+void readPIN(char* PIN)
+{
+    // initialise all our flags - entering most significant digit first
+    fCollectDigit0=true;
+    fCollectDigit1=false;
+    fCollectDigit2=false;
+    fPINCollected = false;
+
+    // Initialise the PIN digits
+    digit[0] = 0;
+    digit[1] = 0;
+    digit[2] = 0;
+
+    // Debug printout
+    uBit.serial.send("Waiting for PIN entry\n");
+
+    // prompt user for input
+    uBit.display.print("Enter PIN");
+    uBit.sleep(200);
+    uBit.display.printChar(charlookup[digit[0]]);
+
+    // this while loop spins while the user enters the PIN using buttons A & B
+    while(!fPINCollected)
+    {
+        uBit.sleep(200);
+    }
+
+    // translates entered digits into decimal integer and returns to caller
+    PIN[0] = charKey[0];
+    PIN[1] = charKey[1];
+    PIN[2] = charKey[2];
+    PIN[3] = 0;
+
+    return;
+}
 
 /***********************************************************
  *
@@ -61,13 +106,8 @@ void decryptMessage(char* dpk) {
     memcpy( &decodedAsciiMsg, &hexBuffer, 32 );
 
     // Terminate the string
-    // TODO - Change this to 32 when we are using all the buffer instead of 3 digit PIN
-    decodedAsciiMsg[4] = 0;
-
-    uBit.serial.send("Decoded String = ");
-    uBit.serial.send(decodedAsciiMsg);
-
-
+    // TODO - Change this to 32 when we are using all the buffer instead of IoT + 3 digit PIN
+    decodedAsciiMsg[7] = 0;
 }
 
 /***********************************************************
@@ -109,11 +149,15 @@ void onConnected(MicroBitEvent e)
         uBit.serial.send(uartBuffer);
         uBit.serial.send("\n");
 
-        // TODO - Read the PIN from the Microbit buttons
+        // Read the PIN from the Microbit buttons
+        readPIN(PIN);
 
-        // TODO - Combine the PIN and the salt into the DPK
+        uBit.serial.send("PIN entered = ");
+        uBit.serial.send(PIN);
+        uBit.serial.send("\n");
 
-        strcpy(dpkInput,PIN);
+        // Combine the PIN and the salt into the DPK
+        strcpy(dpkInput, PIN);
         strcat(dpkInput,salt);
 
         uBit.serial.send("DPK Input = ");
@@ -131,7 +175,7 @@ void onConnected(MicroBitEvent e)
             sprintf( ( hexresult + (2*offset)), "%02x", dpk[offset]&0xff);
         }
 
-        uBit.serial.send("DPK Output = ");
+        uBit.serial.send("SHA Output = ");
         uBit.serial.send(hexresult);
         uBit.serial.send("\n");
 
@@ -146,27 +190,60 @@ void onConnected(MicroBitEvent e)
 
         // TO-DO - Tidy up the below code into another function to handle the protocol message
         // Check the received PIN and control the relevant device.
-        if (strcmp(decodedAsciiMsg,"999"))
+        if (0 == strcmp(decodedAsciiMsg,"IoT-100"))
         {
+            // Switch on the power to the LED
             P1.setDigitalValue(1);
+
+            // Send a notification back to the phone
             uart->send("LED On");
+
+            // Display the result on the LEDs
             uBit.display.scrollAsync("LED on");
 
-        } else if ( strcmp(decodedAsciiMsg,"998")) {
+            // Send the debug info to the serial device
+            uBit.serial.send("PIN 100 - LED on");
+            uBit.serial.send("\n");
+
+        } else if (0 == strcmp(decodedAsciiMsg,"IoT-101")) {
+
+            // Switch off the power to the LED
             P1.setDigitalValue(0);
+
+            // Send a notification back to the phone
             uart->send("LED Off");
+
+            // Display the result on the LEDs
             uBit.display.scrollAsync("LED off");
+
+            // Send the debug info to the serial device
+            uBit.serial.send("PIN 101 - LED off");
+            uBit.serial.send("\n");
+
+        } else if (0 == strncmp(decodedAsciiMsg, "IoT", 3)) {
+
+            // Send a notification back to the phone
+            uart->send("Unknown PIN");
+
+            // Display the result on the LEDs
+            uBit.display.scrollAsync("???");
+
+            // Send the debug info to the serial device
+            uBit.serial.send("Unsupported PIN:- ");
+            uBit.serial.send(decodedAsciiMsg);
+            uBit.serial.send("\n");
+
         } else {
 
-            // Output debug information regarding the unknown PIN
-            char sendBuffer[50];
-            sprintf(sendBuffer, "Unknown PIN: %s", decodedAsciiMsg);
-            uBit.serial.send(sendBuffer);
-            uart->send(sendBuffer);
+            // Send a notification back to the phone
+            uart->send("Incorrect PIN");
 
-            // Display the unknown PIN on the Microbit LEDs
-//            uBit.display.scrollAsync("?: ");
-//            uBit.display.scrollAsync(decodeAsciiMsg);
+            // Display the result on the LEDs
+            uBit.display.scrollAsync("Incorrect PIN");
+
+            // Output debug information regarding the unknown PIN
+            uBit.serial.send("Incorrect PIN\n");
+
         }
     }
 
@@ -193,52 +270,20 @@ void onDisconnected(MicroBitEvent e)
  *
  **********************************************************/
 void flashScreen(){
-  uBit.display.disable();
-  uBit.sleep(200);
-  uBit.display.enable();
-  uBit.sleep(200);
-  uBit.display.disable();
-  uBit.sleep(200);
-  uBit.display.enable();
-  uBit.sleep(200);
-  uBit.display.disable();
-  uBit.sleep(200);
-  uBit.display.enable();
-  uBit.sleep(200);
-}
-
-
-/***********************************************************
- *
- * Function: readPIN()
- *
- * Description: Sets our read flags so that we can input
- *              the PIN using buttons A & B, and returns
- *              the result
- *
- **********************************************************/
-int readPIN()
-{
-  // initialise all our flags - entering most significant digit first
-  fCollectDigit0=true;
-  fCollectDigit1=false;
-  fCollectDigit2=false;
-  fPINCollected = false;
-
-  // prompt user for input
-  uBit.display.print("Enter PIN");
-  uBit.sleep(200);
-  uBit.display.printChar(charlookup[digit[0]]);
-
-  // this while loop spins while the user enters the PIN using buttons A & B
-  while(!fPINCollected)
-  {
+    uBit.display.disable();
     uBit.sleep(200);
-  }
-
-  // translates entered digits into decimal integer and returns to caller
-  return ((100*digit[0]) + (10*digit[1]) + digit[2]);
+    uBit.display.enable();
+    uBit.sleep(200);
+    uBit.display.disable();
+    uBit.sleep(200);
+    uBit.display.enable();
+    uBit.sleep(200);
+    uBit.display.disable();
+    uBit.sleep(200);
+    uBit.display.enable();
+    uBit.sleep(200);
 }
+
 
 /***********************************************************
  *
@@ -253,18 +298,39 @@ void onButtonA(MicroBitEvent e)
         uBit.display.scroll("NC");
         return;
     }else{
-      if(!fButtonAWait){
-        if(fCollectDigit0){
-            digit[0]++;
-            uBit.display.printChar(charlookup[digit[0]]);
-          }else if(fCollectDigit1){
-            digit[1]++;
-            uBit.display.printChar(charlookup[digit[1]]);
-          }else if(fCollectDigit2){
-            digit[2]++;
-            uBit.display.printChar(charlookup[digit[2]]);
+        if(!fButtonAWait){
+            if(fCollectDigit0){
+                digit[0]++;
+
+                // Loop the digits if we go past 9
+                if(digit[0] > 9) {
+                    digit[0] = 0;
+                }
+
+                uBit.display.printChar(charlookup[digit[0]]);
+            }else if(fCollectDigit1){
+                digit[1]++;
+
+                // Loop the digits if we go past 9
+                if(digit[2] > 9) {
+                    digit[2] = 0;
+                }
+
+                uBit.display.printChar(charlookup[digit[1]]);
+            }else if(fCollectDigit2){
+                digit[2]++;
+
+                // Loop the digits if we go past 9
+                if(digit[2] > 9) {
+                    digit[2] = 0;
+                }
+
+                uBit.display.printChar(charlookup[digit[2]]);
+            }
+        } else {
+            // Not currently waiting for a PIN
+            uBit.display.printChar('A',100);
         }
-      }
     }
 }
 
@@ -281,8 +347,8 @@ void onButtonB(MicroBitEvent e)
         uBit.display.scroll("NC");
         return;
     }else{
-        if(!fButtonBWait){
-            if(fCollectDigit0){
+        if(!fButtonBWait) {
+            if(fCollectDigit0) {
 
                 // disable both buttons and flash the entered digit 3 times
                 fButtonAWait = true;
@@ -303,6 +369,10 @@ void onButtonB(MicroBitEvent e)
                 //re-enable both buttons
                 fButtonAWait = false;
                 fButtonBWait = false;
+
+                // Debug output to send PIN digit 3 to serial device
+                uBit.serial.printf("Digit 1 = %d",digit[0]);
+                uBit.serial.send("\n");
 
             }else if(fCollectDigit1)
             {
@@ -326,6 +396,10 @@ void onButtonB(MicroBitEvent e)
                 fButtonAWait = false;
                 fButtonBWait = false;
 
+                // Debug output to send PIN digit 2 to serial device
+                uBit.serial.printf("Digit 2 = %d",digit[1]);
+                uBit.serial.send("\n");
+
             }else if(fCollectDigit2)
             {
                 // disable both buttons and flash the entered digit 3 times
@@ -347,7 +421,16 @@ void onButtonB(MicroBitEvent e)
                 //re-enable both buttons
                 fButtonAWait = false;
                 fButtonBWait = false;
+
+                // Debug output to send PIN digit 3 to serial device
+                uBit.serial.printf("Digit 3 = %d",digit[2]);
+                uBit.serial.send("\n");
+
             }
+
+        } else {
+            // Not currently waiting for a PIN
+            uBit.display.printChar('B',100);
         }
     }
 }
@@ -400,13 +483,13 @@ int main()
     uBit.display.scrollAsync("IoT BLE");
     uBit.sleep(200);
     uBit.serial.send("Microbit initialised\n");
-    if(connected != 0){
-        PIN = readPIN();
-        uBit.sleep(200);
-        ManagedString mStr(PIN);
-        uBit.display.scroll(mStr);
-        uBit.serial.send(mStr);
-    }
+//    if(connected != 0){
+//        int PIN1 = readPIN();
+//        uBit.sleep(200);
+//        ManagedString mStr(PIN1);
+//        uBit.display.scroll(mStr);
+//        uBit.serial.send(mStr);
+//    }
 
     // If main exits, there may still be other fibers running or registered event handlers etc.
     // Simply release this fiber, which will mean we enter the scheduler. Worse case, we then
