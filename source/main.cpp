@@ -1,7 +1,10 @@
 #include "MicroBit.h"
 #include "MicroBitUARTService.h"
 #include "aes.h"
+#include "sha1.h"
 #include "utility.h"
+#include <string.h>
+
 
 MicroBit uBit;
 MicroBitUARTService *uart;
@@ -20,15 +23,11 @@ char decodedAsciiMsg[33];
  *              message over BLE
  *
  **********************************************************/
-void decryptMessage() {
+void decryptMessage(char* dpk) {
 
     struct AES_ctx ctx;
     char hexBuffer[16];
-    char serialBuffer[33];
     int i,j;
-
-    // TODO - remove the hard coded key and read from the microbit buttons
-    uint8_t key[] = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
     // Convert the uart buffer message from ASCII to binary
     for (i = 0, j = 0; i < 32; j++, i += 2) {
@@ -36,7 +35,7 @@ void decryptMessage() {
     }
 
     // Decrypt the message. Output overwrites the input 'hexBuffer'
-    AES_init_ctx(&ctx, key);
+    AES_init_ctx(&ctx, (uint8_t*)dpk);
     AES_ECB_decrypt(&ctx, (uint8_t*)hexBuffer);
 
     // Copy the output message back to the global buffer 'decodedAsciiMsg'
@@ -62,8 +61,15 @@ void decryptMessage() {
  **********************************************************/
 void onConnected(MicroBitEvent e)
 {
+    char PIN[4] = "999";
+    char salt[] = "ThisIsMySaltThereAreManyLikeIt";
+
     uBit.display.scroll("C");
     uBit.serial.send ("BLE Connected\n");
+
+    // TODO - Change this size depending on our salt
+    char dpkInput[34] = {0};
+    char dpk[21];
 
     connected = 1;
 
@@ -73,7 +79,7 @@ void onConnected(MicroBitEvent e)
     // Main program loop.
     while (connected == 1) {
 
-        // Wait until we have read the message from the UART
+        // Wait until we have read the 32 byte ASCII message from the UART
         int charsRead = uart->read((uint8_t*)uartBuffer, 32, SYNC_SLEEP );
 
         // Terminate the string correctly
@@ -84,12 +90,38 @@ void onConnected(MicroBitEvent e)
         uBit.serial.send(uartBuffer);
         uBit.serial.send("\n");
 
-        // TO-DO - Read the PIN from the Microbit buttons
+        // TODO - Read the PIN from the Microbit buttons
 
-        // TO-DO - Combine the PIN and the salt into the DPK
+        // TODO - Combine the PIN and the salt into the DPK
+
+        strcpy(dpkInput,PIN);
+        strcat(dpkInput,salt);
+
+        uBit.serial.send("DPK Input = ");
+        uBit.serial.send(dpkInput);
+        uBit.serial.send("\n");
+
+        /* calculate hash on input string */
+        SHA1( dpk, dpkInput, strlen(dpkInput) );
+
+        char hexresult[41];
+        size_t offset;
+
+        /* format the hash for printing */
+        for( offset = 0; offset < 20; offset++) {
+            sprintf( ( hexresult + (2*offset)), "%02x", dpk[offset]&0xff);
+        }
+
+        uBit.serial.send("DPK Output = ");
+        uBit.serial.send(hexresult);
+        uBit.serial.send("\n");
+
+        // SHA1 produces a 20 byte output. AES-128-ECB only needs a 16 byte string,
+        // Truncate the dpk.
+        dpk[16] = 0;
 
         // TO-DO - Decrypt the incoming message
-        decryptMessage();
+        decryptMessage(dpk);
 
         // TO-DO - Validate the decrypted message is valid
 
