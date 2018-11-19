@@ -4,7 +4,7 @@
 // Utility Macro to convert two ASCII characters to Hex BCD format
 unsigned char ASCII_TO_BCD(char ascii_text[2])
 {
-    unsigned char bcd_value;
+    unsigned char bcd_value = 0;
 
     // left side
     if(ascii_text[0] >= '0' && ascii_text[0] <= '9')  // 0-9 range

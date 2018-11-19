@@ -3,6 +3,7 @@
 #include "MicroBitUARTService.h"
 #include "aes.h"
 #include "sha1.h"
+#include "protocol.h"
 #include "utility.h"
 #include <string.h>
 
@@ -103,10 +104,10 @@ void decryptMessage(char* dpk) {
     AES_ECB_decrypt(&ctx, (uint8_t*)hexBuffer);
 
     // Copy the output message back to the global buffer 'decodedAsciiMsg'
-    memcpy( &decodedAsciiMsg, &hexBuffer, 32 );
+    memcpy( &decodedAsciiMsg, &hexBuffer, 16 );
 
     // Terminate the string
-    // TODO - Change this to 32 when we are using all the buffer instead of IoT + 3 digit PIN
+    // TODO - Change this to 16 when we are using all the buffer instead of IoT + 3 digit PIN
     decodedAsciiMsg[7] = 0;
 }
 
@@ -130,16 +131,16 @@ void onConnected(MicroBitEvent e)
     char dpkInput[34] = {0};
     char dpk[21];
 
-    connected = 1;
+    char hexresult[41];
+    size_t offset;
 
-    // The Android client will send ASCII strings terminated with the colon character
-    ManagedString eom(":");
+    connected = 1;
 
     // Main program loop.
     while (connected == 1) {
 
         // Wait until we have read the 32 byte ASCII message from the UART
-        int charsRead = uart->read((uint8_t*)uartBuffer, 32, SYNC_SLEEP );
+        uart->read((uint8_t*)uartBuffer, 32, SYNC_SLEEP );
 
         // Terminate the string correctly
         uartBuffer[32] = '\0';
@@ -167,15 +168,12 @@ void onConnected(MicroBitEvent e)
         /* calculate hash on input string */
         SHA1( dpk, dpkInput, strlen(dpkInput) );
 
-        char hexresult[41];
-        size_t offset;
-
-        /* format the hash for printing */
-        for( offset = 0; offset < 20; offset++) {
+        // Debug output for SHA1 Hash. Convert Hex to ASCII for printing. Trruncate to 16
+        for( offset = 0; offset < 16; offset++) {
             sprintf( ( hexresult + (2*offset)), "%02x", dpk[offset]&0xff);
         }
 
-        uBit.serial.send("SHA Output = ");
+        uBit.serial.send("Truncated SHA Output = ");
         uBit.serial.send(hexresult);
         uBit.serial.send("\n");
 
@@ -183,12 +181,17 @@ void onConnected(MicroBitEvent e)
         // Truncate the dpk.
         dpk[16] = 0;
 
-        // TO-DO - Decrypt the incoming message
+        // Decrypt the incoming message
         decryptMessage(dpk);
 
-        // TO-DO - Validate the decrypted message is valid
+        // TODO - Validate the decrypted message is valid
+        if (IS_HEADER_VALID(decodedAsciiMsg)) {
+            uBit.serial.send("Decoded Message:- ");
+            uBit.serial.send(decodedAsciiMsg);
+            uBit.serial.send("\n");
+        }
 
-        // TO-DO - Tidy up the below code into another function to handle the protocol message
+        // TODO - Tidy up the below code into another function to handle the protocol message
         // Check the received PIN and control the relevant device.
         if (0 == strcmp(decodedAsciiMsg,"IoT-100"))
         {
@@ -222,27 +225,24 @@ void onConnected(MicroBitEvent e)
 
         } else if (0 == strncmp(decodedAsciiMsg, "IoT", 3)) {
 
-            // Send a notification back to the phone
-            uart->send("Unknown PIN");
-
             // Display the result on the LEDs
             uBit.display.scrollAsync("???");
 
-            // Send the debug info to the serial device
-            uBit.serial.send("Unsupported PIN:- ");
-            uBit.serial.send(decodedAsciiMsg);
-            uBit.serial.send("\n");
+//            // Send the debug info to the serial device
+//            uBit.serial.send("Unsupported PIN:- ");
+//            uBit.serial.send(decodedAsciiMsg);
+//            uBit.serial.send("\n");
 
         } else {
 
-            // Send a notification back to the phone
-            uart->send("Incorrect PIN");
+//            // Send a notification back to the phone
+//            uart->send("Incorrect PIN");
 
             // Display the result on the LEDs
             uBit.display.scrollAsync("Incorrect PIN");
 
-            // Output debug information regarding the unknown PIN
-            uBit.serial.send("Incorrect PIN\n");
+//            // Output debug information regarding the unknown PIN
+//            uBit.serial.send("Incorrect PIN\n");
 
         }
     }
@@ -450,9 +450,6 @@ void onButtonAB(MicroBitEvent e)
     }
     uBit.display.scroll("Both Buttons");
 }
-
-
-
 
 
 /***********************************************************
