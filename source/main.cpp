@@ -10,7 +10,20 @@
 
 MicroBit uBit;
 MicroBitUARTService *uart;
-MicroBitPin P1(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_DIGITAL);
+
+/* Buzzer is connected to Pin 0 */
+MicroBitPin BUZZER(MICROBIT_ID_IO_P0, MICROBIT_PIN_P0, PIN_CAPABILITY_ALL);
+
+/* Fan motor is connected to Pin 1 */
+MicroBitPin FAN(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_ALL);
+
+/* Single colour LED is connected on Pin 16 */
+MicroBitPin LED(MICROBIT_ID_IO_P16, MICROBIT_PIN_P16, PIN_CAPABILITY_DIGITAL);
+
+MicroBitPin RGB_RED(MICROBIT_ID_IO_P13, MICROBIT_PIN_P13, PIN_CAPABILITY_DIGITAL);
+MicroBitPin RGB_GREEN(MICROBIT_ID_IO_P14, MICROBIT_PIN_P14, PIN_CAPABILITY_DIGITAL);
+MicroBitPin RGB_BLUE(MICROBIT_ID_IO_P15, MICROBIT_PIN_P15, PIN_CAPABILITY_DIGITAL);
+
 
 int connected = 0;
 
@@ -34,6 +47,203 @@ unsigned int digit[3] = {0,0,0};
 bool fButtonAWait = false;
 bool fButtonBWait = false;
 
+int beat = 200;
+
+/***********************************************************
+ *
+ * Function: flashScreen()
+ *
+ * Description: Flashes the Microbit display three times
+ *
+ **********************************************************/
+    void flashScreen(){
+        uBit.display.disable();
+        uBit.sleep(200);
+        uBit.display.enable();
+        uBit.sleep(200);
+        uBit.display.disable();
+        uBit.sleep(200);
+        uBit.display.enable();
+        uBit.sleep(200);
+        uBit.display.disable();
+        uBit.sleep(200);
+        uBit.display.enable();
+        uBit.sleep(200);
+    }
+
+    /***********************************************************
+     *
+     * Function: LED_SOS()
+     *
+     * Description: Sends an SOS signal using the LED
+     *
+     **********************************************************/
+    void LED_SOS(){
+
+        LED.setDigitalValue(1);
+        uBit.sleep(100);
+        LED.setDigitalValue(0);
+        uBit.sleep(100);
+        LED.setDigitalValue(1);
+        uBit.sleep(100);
+        LED.setDigitalValue(0);
+        uBit.sleep(100);
+        LED.setDigitalValue(1);
+        uBit.sleep(100);
+        LED.setDigitalValue(0);
+        uBit.sleep(1000);
+
+        LED.setDigitalValue(1);
+        uBit.sleep(500);
+        LED.setDigitalValue(0);
+        uBit.sleep(500);
+        LED.setDigitalValue(1);
+        uBit.sleep(500);
+        LED.setDigitalValue(0);
+        uBit.sleep(500);
+        LED.setDigitalValue(1);
+        uBit.sleep(500);
+        LED.setDigitalValue(0);
+        uBit.sleep(1000);
+
+        LED.setDigitalValue(1);
+        uBit.sleep(100);
+        LED.setDigitalValue(0);
+        uBit.sleep(100);
+        LED.setDigitalValue(1);
+        uBit.sleep(100);
+        LED.setDigitalValue(0);
+        uBit.sleep(100);
+        LED.setDigitalValue(1);
+        uBit.sleep(100);
+        LED.setDigitalValue(0);
+        uBit.sleep(1000);
+
+        uBit.sleep(1000);
+
+    }
+
+/***********************************************************
+ *
+ * Function: buzzSiren()
+ *
+ * Description: Makes a siren sound using the buzzer.
+ *
+ **********************************************************/
+    void buzzSiren(){
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(400);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(5102); // note G3 = freq 196.00Hz
+        uBit.sleep(400);
+    }
+
+/***********************************************************
+ *
+ * Function: buzzFanfare()
+ *
+ * Description: Plays a tune using the buzzer.
+ *
+ **********************************************************/
+    void buzzFanfare(){
+
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(2863); // note F4 = freq 349.23Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
+        uBit.sleep(beat/2);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(2025); // note B4 = freq 493.88Hz
+        uBit.sleep(beat/2);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
+        uBit.sleep(2*beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(4049); // note B3 = freq 246.94Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+        uBit.sleep(beat);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+        uBit.sleep(beat);
+
+    }
+/***********************************************************
+*
+* Function: rgbParty()
+*
+* Description: Activates Party Mode
+*
+**********************************************************/
+    void rgbParty(){
+        RGB_RED.setDigitalValue(1);   //Red
+        RGB_GREEN.setDigitalValue(0);
+        RGB_BLUE.setDigitalValue(0);
+        uBit.sleep(3000);
+        RGB_GREEN.setDigitalValue(1); //Yellow
+        uBit.sleep(300);
+        RGB_RED.setDigitalValue(0);   //Green
+        uBit.sleep(300);
+        RGB_BLUE.setDigitalValue(1);  //Cyan
+        uBit.sleep(300);
+        RGB_GREEN.setDigitalValue(0); //Blue
+        uBit.sleep(300);
+        RGB_RED.setDigitalValue(1);   //Magenta
+        uBit.sleep(300);
+        RGB_GREEN.setDigitalValue(1); //White
+        uBit.sleep(300);
+    }
 
 /***********************************************************
  *
@@ -242,7 +452,7 @@ void onConnected(MicroBitEvent e) {
 
                             if (serviceData == SERVICE_LED_ON) {
                                 // Switch on the power to the LED
-                                P1.setDigitalValue(1);
+                                LED.setDigitalValue(1);
 
                                 // Send a notification back to the client
                                 uart->send("LED On");
@@ -255,7 +465,7 @@ void onConnected(MicroBitEvent e) {
                                 uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_LED_OFF) {
                                 // Switch off the power to the LED
-                                P1.setDigitalValue(0);
+                                LED.setDigitalValue(0);
 
                                 // Send a notification back to the phone
                                 uart->send("LED Off");
@@ -267,15 +477,18 @@ void onConnected(MicroBitEvent e) {
                                 uBit.serial.send("LED off");
                                 uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_LED_SOS) {
-                                // TODO - Perform SOS actions
+                                // Perform SOS actions
+                                while(1){
+                                  LED_SOS();
+                                }
                                 // Send a notification back to the phone
-                                uart->send("LED SoS");
+                                uart->send("LED SOS");
 
                                 // Display the result on the LEDs
-                                uBit.display.scrollAsync("LED SoS");
+                                uBit.display.scrollAsync("LED SOS");
 
                                 // Send the debug info to the serial device
-                                uBit.serial.send("LED SoS");
+                                uBit.serial.send("LED SOS");
                                 uBit.serial.send("\n");
                             } else {
                                 // Unsupported LED action.
@@ -292,18 +505,283 @@ void onConnected(MicroBitEvent e) {
                             uBit.serial.send("Buzzer Service Requested:- Request Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
+                            if (serviceData == SERVICE_BUZZER_BASIC) {
+                                // Send single note to the Buzzer
+                                BUZZER.setAnalogValue(511);     // square wave
+                                BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+
+                                // Send a notification back to the client
+                                uart->send("Buzzer On");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("Buzzer on");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Buzzer on");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_BUZZER_OFF) {
+                                // Switch off the power to the Buzzer
+                                BUZZER.setDigitalValue(0);
+
+                                // Send a notification back to the phone
+                                uart->send("Buzzer Off");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("Buzzer off");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Buzzer off");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_BUZZER_SIREN) {
+                                // Make buzzer act as a siren
+                                while(1){
+                                  buzzSiren();
+                                }
+                                // Send a notification back to the phone
+                                uart->send("Buzzer Siren");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("Buzzer Siren");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Buzzer Siren");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_BUZZER_FANFARE) {
+                                  // Make buzzer play a fanfare
+                                  while(1){
+                                    buzzFanfare();
+                                  }
+                                  // Send a notification back to the phone
+                                  uart->send("Buzzer Fanfare");
+
+                                  // Display the result on the LEDs
+                                  uBit.display.scrollAsync("Buzzer Fanfare");
+
+                                  // Send the debug info to the serial device
+                                  uBit.serial.send("Buzzer Fanfare");
+                                  uBit.serial.send("\n");
+                            } else {
+                                // Unsupported Buzzer action.
+                                uart->send("Unknown Buzzer Service request");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Buzzer Unknown Service Request");
+                                uBit.serial.send(serviceData);
+                                uBit.serial.send("\n");
+                            }
                             break;
 
                         case SERVICE_FAN:
                             uBit.serial.send("Fan Service Requested:- Request Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
+                            if (serviceData == SERVICE_FAN_OFF) {
+                                // Switch off the power to the Fan
+                                FAN.setDigitalValue(0);
+                                // Send a notification back to the client
+                                uart->send("Fan off");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("Fan off");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Fan off");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_FAN_SLOW) {
+                                // Set Fan power to ~25%
+                                FAN.setAnalogValue(255);
+
+                                // Send a notification back to the phone
+                                uart->send("Fan setting: SLOW");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("Fan setting: SLOW");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Fan setting: SLOW");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_FAN_MED) {
+                              // Set Fan power to ~50%
+                              FAN.setAnalogValue(511);
+
+                              // Send a notification back to the phone
+                              uart->send("Fan setting: MED");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("Fan setting: MED");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("Fan setting: MED");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_FAN_FAST) {
+                              // Set Fan power to 100%
+                              FAN.setAnalogValue(1023);
+
+                              // Send a notification back to the phone
+                              uart->send("Fan setting: FAST");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("Fan setting: FAST");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("Fan setting: FAST");
+                              uBit.serial.send("\n");
+                            } else {
+                                // Unsupported Fan action.
+                                uart->send("Unknown Fan Service request");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("Fan Unknown Service Request");
+                                uBit.serial.send(serviceData);
+                                uBit.serial.send("\n");
+                            }
                             break;
 
                         case SERVICE_RGB_LED:
                             uBit.serial.send("RGB LED Service Requested:- Request Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
+                            if (serviceData == SERVICE_RGB_OFF) {
+                                // Switch off the power to the Fan
+                                FAN.setDigitalValue(0);
+                                // Send a notification back to the client
+                                uart->send("RGB LED off");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("RGB LED off");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("RGB LED off");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_RED) {
+                                // Set RGB LED to Red
+                                RGB_RED.setDigitalValue(1);
+                                RGB_GREEN.setDigitalValue(0);
+                                RGB_BLUE.setDigitalValue(0);
+
+                                // Send a notification back to the phone
+                                uart->send("RGB LED setting: Red");
+
+                                // Display the result on the LEDs
+                                uBit.display.scrollAsync("RGB LED setting: Red");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("RGB LED setting: Red");
+                                uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_BLUE) {
+                              // Set RGB LED to Blue
+                              RGB_RED.setDigitalValue(0);
+                              RGB_GREEN.setDigitalValue(0);
+                              RGB_BLUE.setDigitalValue(1);
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: Blue");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("RGB LED setting: Blue");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: Blue");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_GREEN) {
+                              // Set RGB LED to Green
+                              RGB_RED.setDigitalValue(0);
+                              RGB_GREEN.setDigitalValue(1);
+                              RGB_BLUE.setDigitalValue(0);
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: Green");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("RGB LED setting: Green");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: Green");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_MAGENTA) {
+                              // Set RGB LED to Magenta
+                              RGB_RED.setDigitalValue(1);
+                              RGB_GREEN.setDigitalValue(0);
+                              RGB_BLUE.setDigitalValue(1);
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: Magenta");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("RGB LED setting: Magenta");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: Magenta");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_YELLOW) {
+                              // Set RGB LED to Yellow
+                              RGB_RED.setDigitalValue(1);
+                              RGB_GREEN.setDigitalValue(1);
+                              RGB_BLUE.setDigitalValue(0);
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: Yellow");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("RGB LED setting: Yellow");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: Yellow");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_CYAN) {
+                              // Set RGB LED to Cyan
+                              RGB_RED.setDigitalValue(0);
+                              RGB_GREEN.setDigitalValue(1);
+                              RGB_BLUE.setDigitalValue(1);
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: Cyan");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("RGB LED setting: Cyan");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: Cyan");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_WHITE) {
+                              // Set RGB LED to White
+                              RGB_RED.setDigitalValue(1);
+                              RGB_GREEN.setDigitalValue(1);
+                              RGB_BLUE.setDigitalValue(1);
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: White");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("RGB LED setting: White");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: White");
+                              uBit.serial.send("\n");
+                            } else if (serviceData == SERVICE_RGB_PARTY) {
+                              // Activate Party Mode - Merry Christmas!
+                              while(1){
+                                rgbParty();
+                              }
+
+                              // Send a notification back to the phone
+                              uart->send("RGB LED setting: Party");
+
+                              // Display the result on the LEDs
+                              uBit.display.scrollAsync("LET'S PARTY");
+
+                              // Send the debug info to the serial device
+                              uBit.serial.send("RGB LED setting: Party");
+                              uBit.serial.send("\n");
+                            } else {
+                                // Unsupported Fan action.
+                                uart->send("Unknown RGB Service request");
+
+                                // Send the debug info to the serial device
+                                uBit.serial.send("RGB Unknown Service Request");
+                                uBit.serial.send(serviceData);
+                                uBit.serial.send("\n");
+                            }
                             break;
 
                         default:
@@ -353,27 +831,6 @@ void onConnected(MicroBitEvent e) {
         uBit.display.scroll("D");
         uBit.serial.send ("BLE Disconnected\n");
         connected = 0;
-    }
-/***********************************************************
- *
- * Function: flashScreen()
- *
- * Description: Flashes the Microbit display three times
- *
- **********************************************************/
-    void flashScreen(){
-        uBit.display.disable();
-        uBit.sleep(200);
-        uBit.display.enable();
-        uBit.sleep(200);
-        uBit.display.disable();
-        uBit.sleep(200);
-        uBit.display.enable();
-        uBit.sleep(200);
-        uBit.display.disable();
-        uBit.sleep(200);
-        uBit.display.enable();
-        uBit.sleep(200);
     }
 
 
