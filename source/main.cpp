@@ -45,7 +45,7 @@ unsigned int digit[3] = {0,0,0};
 bool fButtonAWait = false;
 bool fButtonBWait = false;
 
-int beat = 200;
+int beat = 500;
 
 /***********************************************************
  *
@@ -222,6 +222,7 @@ void buzzFanfare(){
     BUZZER.setAnalogValue(511);     // square wave
     BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
     uBit.sleep(beat);
+    BUZZER.setDigitalValue(0);
 
 }
 /***********************************************************
@@ -875,8 +876,8 @@ void onButtonA(MicroBitEvent e)
                 digit[1]++;
 
                 // Loop the digits if we go past 9
-                if(digit[2] > 9) {
-                    digit[2] = 0;
+                if(digit[1] > 9) {
+                    digit[1] = 0;
                 }
 
                 uBit.display.printChar(charlookup[digit[1]]);
