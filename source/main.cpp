@@ -3,8 +3,10 @@
 #include "MicroBitUARTService.h"
 #include "aes.h"
 #include "sha1.h"
+#include "main.h"
 #include "protocol.h"
 #include "utility.h"
+#include "services.h"
 #include <string.h>
 
 
@@ -45,211 +47,9 @@ unsigned int digit[3] = {0,0,0};
 bool fButtonAWait = false;
 bool fButtonBWait = false;
 
-int beat = 500;
+bool LEDSoSOn = false;
+bool LEDSoSFinished = true;
 
-/***********************************************************
- *
- * Function: flashScreen()
- *
- * Description: Flashes the Microbit display three times
- *
- **********************************************************/
-void flashScreen(){
-
-    uBit.display.clear();
-    uBit.sleep(200);
-    uBit.display.printChar(digit[0]);
-    uBit.sleep(200);
-    uBit.display.clear();
-    uBit.sleep(200);
-//    uBit.display.disable();
-//    uBit.sleep(200);
-//    uBit.display.enable();
-//    uBit.sleep(200);
-//    uBit.display.disable();
-//    uBit.sleep(200);
-//    uBit.display.enable();
-//    uBit.sleep(200);
-//    uBit.display.disable();
-//    uBit.sleep(200);
-//    uBit.display.enable();
-//    uBit.sleep(200);
-}
-
-/***********************************************************
- *
- * Function: LED_SOS()
- *
- * Description: Sends an SOS signal using the LED
- *
- **********************************************************/
-void LED_SOS(){
-
-    LED.setDigitalValue(1);
-    uBit.sleep(100);
-    LED.setDigitalValue(0);
-    uBit.sleep(100);
-    LED.setDigitalValue(1);
-    uBit.sleep(100);
-    LED.setDigitalValue(0);
-    uBit.sleep(100);
-    LED.setDigitalValue(1);
-    uBit.sleep(100);
-    LED.setDigitalValue(0);
-    uBit.sleep(1000);
-
-    LED.setDigitalValue(1);
-    uBit.sleep(500);
-    LED.setDigitalValue(0);
-    uBit.sleep(500);
-    LED.setDigitalValue(1);
-    uBit.sleep(500);
-    LED.setDigitalValue(0);
-    uBit.sleep(500);
-    LED.setDigitalValue(1);
-    uBit.sleep(500);
-    LED.setDigitalValue(0);
-    uBit.sleep(1000);
-
-    LED.setDigitalValue(1);
-    uBit.sleep(100);
-    LED.setDigitalValue(0);
-    uBit.sleep(100);
-    LED.setDigitalValue(1);
-    uBit.sleep(100);
-    LED.setDigitalValue(0);
-    uBit.sleep(100);
-    LED.setDigitalValue(1);
-    uBit.sleep(100);
-    LED.setDigitalValue(0);
-    uBit.sleep(1000);
-
-    uBit.sleep(1000);
-
-}
-
-/***********************************************************
- *
- * Function: buzzSiren()
- *
- * Description: Makes a siren sound using the buzzer.
- *
- **********************************************************/
-void buzzSiren(){
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(400);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(5102); // note G3 = freq 196.00Hz
-    uBit.sleep(400);
-}
-
-/***********************************************************
- *
- * Function: buzzFanfare()
- *
- * Description: Plays a tune using the buzzer.
- *
- **********************************************************/
-void buzzFanfare(){
-
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2863); // note F4 = freq 349.23Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
-    uBit.sleep(beat/2);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2025); // note B4 = freq 493.88Hz
-    uBit.sleep(beat/2);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
-    uBit.sleep(2*beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(4049); // note B3 = freq 246.94Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setDigitalValue(0);
-
-}
-/***********************************************************
-*
-* Function: rgbParty()
-*
-* Description: Activates Party Mode
-*
-**********************************************************/
-void rgbParty(){
-    RGB_RED.setDigitalValue(1);   //Red
-    RGB_GREEN.setDigitalValue(0);
-    RGB_BLUE.setDigitalValue(0);
-    uBit.sleep(3000);
-    RGB_GREEN.setDigitalValue(1); //Yellow
-    uBit.sleep(300);
-    RGB_RED.setDigitalValue(0);   //Green
-    uBit.sleep(300);
-    RGB_BLUE.setDigitalValue(1);  //Cyan
-    uBit.sleep(300);
-    RGB_GREEN.setDigitalValue(0); //Blue
-    uBit.sleep(300);
-    RGB_RED.setDigitalValue(1);   //Magenta
-    uBit.sleep(300);
-    RGB_GREEN.setDigitalValue(1); //White
-    uBit.sleep(300);
-}
 
 /***********************************************************
  *
@@ -382,6 +182,7 @@ void generateDPK(char dpk[21], char PIN[4]) {
  *
  **********************************************************/
 void onConnected(MicroBitEvent e) {
+
     char PIN[4];
     char dpk[21];
 
@@ -458,6 +259,15 @@ void onConnected(MicroBitEvent e) {
                             uBit.serial.send("\n");
 
                             if (serviceData == SERVICE_LED_ON) {
+
+                                // If the SoS function is running, wait for it to
+                                // finish its round.
+                                if(LEDSoSOn) {
+                                    LEDSoSOn = false;
+                                    while (!LEDSoSFinished)
+                                        uBit.sleep(500);
+                                }
+
                                 // Switch on the power to the LED
                                 LED.setDigitalValue(1);
 
@@ -474,6 +284,9 @@ void onConnected(MicroBitEvent e) {
                                 // Switch off the power to the LED
                                 LED.setDigitalValue(0);
 
+                                // If the LED SoS is running, disable it
+                                LEDSoSOn = false;
+
                                 // Send a notification back to the phone
                                 uart->send("LED Off");
 
@@ -485,11 +298,13 @@ void onConnected(MicroBitEvent e) {
                                 uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_LED_SOS) {
                                 // Perform SOS actions
+                                LEDSoSOn = true;
 
                                 // TODO - Cannot use while(1)
 //                                while(1){
-                                LED_SOS();
+                                create_fiber(LED_SOS);
 //                                }
+
                                 // Send a notification back to the phone
                                 uart->send("LED SOS");
 
