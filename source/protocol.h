@@ -8,7 +8,7 @@
 # define ACKNOWLEDGE 1
 
 // Defines for service IDs and Data
-
+#define SERVICE_SALT 0
 #define SERVICE_LED 1
 #define SERVICE_BUZZER 2
 #define SERVICE_RGB_LED 3
@@ -44,14 +44,14 @@
 
 // Protocol Message definition
 
-//  -------------------------------------------------------------------------------------------
-// | Byte        | 0 | 1 | 2 |  3  |   4  | 5   | 6 | 7 | 8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 |
-//  -------------------------------------------------------------------------------------------
-// | Description |   Header  | Prot | Req | Svc |    Service Data          |  Redund |   CRC   |
-// |             |           | Ver  | ACK | ID  |                          |   Info  |         |
-//  -------------------------------------------------------------------------------------------
-// | Contents    | I   O   T |   1  | 0/1 | 0-F |   0 - FFFFFF             |  Random |  0-FF   |
-//  -------------------------------------------------------------------------------------------
+//  ---------------------------------------------------------------------------------------
+// | Byte        | 0 | 1 | 2 |  3  |   4  | 5   | 6 | 7 | 8 |  9 | 10 | 11 | 12 | 13 | 14 |
+//  ---------------------------------------------------------------------------------------
+// | Description |   Header  | Prot | Req | Svc |    Service Data     |  Redund |  CRC    |
+// |             |           | Ver  | ACK | ID  |                     |   Info  |         |
+//  ---------------------------------------------------------------------------------------
+// | Contents    | I   O   T |   1  | 0/1 | 0-F |   0 - FFFFF         |  Random |  0-FF   |
+//  ---------------------------------------------------------------------------------------
 
 // TODO - Remove this example code
 //
@@ -122,6 +122,16 @@
     serviceData |= (int)(((array[9]) -0x30)<< 8); \
     serviceData |= (int)array[10] - 0x30; \
 }
+
+#define GET_SALT(array, salt) { \
+    salt[0] = array[6]; \
+    salt[1] = array[7]; \
+    salt[2] = array[8]; \
+    salt[3] = array[9]; \
+    salt[4] = array[10]; \
+    salt[5] = '\0'; \
+}
+
 
 #define SET_REDUNDANT_INFO(array, randomNumber) { \
     array[11] = ((randomNumber & 0xFF00) >> 8); \

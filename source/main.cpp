@@ -50,6 +50,8 @@ bool fButtonBWait = false;
 bool LEDSoSOn = false;
 bool LEDSoSFinished = true;
 
+char perSessionSalt[6] = "";
+
 
 /***********************************************************
  *
@@ -139,9 +141,8 @@ void decryptMessage(char* dpk) {
  *              BLE is in a connected state
  *
  **********************************************************/
-void generateDPK(char dpk[21], char PIN[4]) {
+void generateDPK(char dpk[21], char salt[], char PIN[4]) {
 
-    char salt[] = "ThisIsMySaltThereAreManyLikeIt";
 
     // TODO - Change this size depending on our salt
     char dpkInput[34] = {0};
@@ -205,14 +206,25 @@ void onConnected(MicroBitEvent e) {
         uBit.serial.send(uartBuffer);
         uBit.serial.send("\n");
 
-        // Read the PIN from the Microbit buttons
-        readPIN(PIN);
+        // If the per session salt is not set yet, use
+        // a hard coded PIN and Salt.
+        if(perSessionSalt[0] == '\0') {
+            char salt[] = "ThisIsMySaltThereAreManyLikeIt";
+            strcpy(PIN, "123");
 
-        generateDPK(dpk, PIN);
+            generateDPK(dpk, salt, PIN);
+
+        } else {
+            // Per sessoion salt already provided, used that with the
+            // user entered PIN.
+            // Read the PIN from the Microbit buttons
+            readPIN(PIN);
+
+            generateDPK(dpk, perSessionSalt, PIN);
+        }
 
         // Decrypt the incoming message
         decryptMessage(dpk);
-
 
         // Validate that the incoming message has been decoded correctly
         // TODO - Add CRC check here too
@@ -253,6 +265,15 @@ void onConnected(MicroBitEvent e) {
                     GET_SERVICE_DATA(decodedAsciiMsg, serviceData);
 
                     switch (serviceID) {
+                        case SERVICE_SALT:
+                            // We are being sent a new per session salt to use
+                            // to decode all future messages.
+                            GET_SALT(decodedAsciiMsg, perSessionSalt);
+                            uBit.serial.send("New Per Session Salt received. Salt = ");
+                            uBit.serial.send(perSessionSalt);
+                            uBit.serial.send("\n");
+                            break;
+
                         case SERVICE_LED:
                             uBit.serial.send("LED Service Requested:- Request Data = ");
                             uBit.serial.send(serviceData);
