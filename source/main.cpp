@@ -22,6 +22,7 @@ MicroBitPin FAN(MICROBIT_ID_IO_P1, MICROBIT_PIN_P1, PIN_CAPABILITY_ALL);
 /* Single colour LED is connected on Pin 16 */
 MicroBitPin LED(MICROBIT_ID_IO_P16, MICROBIT_PIN_P16, PIN_CAPABILITY_DIGITAL);
 
+/* RGB LED is connected on Pin 13 (Red), Pin 14 (Green) and Pin 15 (Blue) */
 MicroBitPin RGB_RED(MICROBIT_ID_IO_P13, MICROBIT_PIN_P13, PIN_CAPABILITY_DIGITAL);
 MicroBitPin RGB_GREEN(MICROBIT_ID_IO_P14, MICROBIT_PIN_P14, PIN_CAPABILITY_DIGITAL);
 MicroBitPin RGB_BLUE(MICROBIT_ID_IO_P15, MICROBIT_PIN_P15, PIN_CAPABILITY_DIGITAL);
@@ -29,6 +30,7 @@ MicroBitPin RGB_BLUE(MICROBIT_ID_IO_P15, MICROBIT_PIN_P15, PIN_CAPABILITY_DIGITA
 
 int connected = 0;
 
+/* Arrays for encrypted UART messages and decrypted final message */
 char uartBuffer[33];
 char decodedAsciiMsg[33];
 
@@ -757,7 +759,7 @@ void onButtonB(MicroBitEvent e)
 
 //                uBit.display.clear();
 //                uBit.sleep(200);
-                
+
                 // store the entered digit
                 charKey[0] = charlookup[digit[0]];
 
