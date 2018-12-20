@@ -7,6 +7,7 @@
 #include "protocol.h"
 #include "utility.h"
 #include "services.h"
+#include "ccitt-crc.h"
 #include <string.h>
 
 
@@ -188,6 +189,8 @@ void onConnected(MicroBitEvent e) {
 
     char PIN[4];
     char dpk[21];
+    int isGood;
+    int crcVal;
 
     uBit.display.scroll("C");
     uBit.serial.send("BLE Connected\n");
@@ -207,6 +210,8 @@ void onConnected(MicroBitEvent e) {
         uBit.serial.send("BLE Received message: ");
         uBit.serial.send(uartBuffer);
         uBit.serial.send("\n");
+
+
 
         // If the per session salt is not set yet, use
         // a hard coded PIN and Salt.
@@ -230,6 +235,14 @@ void onConnected(MicroBitEvent e) {
 
         // Validate that the incoming message has been decoded correctly
         // TODO - Add CRC check here too
+        GET_CRC(decodedAsciiMsg, crcVal);
+        int checksum = ccitt_crc(decodedAsciiMsg,13);
+        if(crcVal == checksum){
+          isGood=1;
+        }else{
+          isGood=0;
+        }
+
         if (IS_HEADER_VALID(decodedAsciiMsg)) {
 
             // Header and CRC are valid. Proceed with decoding the message
