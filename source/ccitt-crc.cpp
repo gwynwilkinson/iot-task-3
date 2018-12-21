@@ -49,7 +49,7 @@ int ccitt_crc(char *data, int length)
 {
 
    int count;
-   int crc = 0xffff;
+   int crc = 0;
    int temp;
 
    for (count = 0; count < length; ++count)
@@ -58,6 +58,6 @@ int ccitt_crc(char *data, int length)
      crc = crc_table[temp] ^ (crc << 8);
    }
 
-   return (crc%256);
+   return ((crc%256) & 0xff);
 
 }

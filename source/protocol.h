@@ -53,26 +53,6 @@
 // | Contents    | I   O   T |   1  | 0/1 | 0-F |   0 - FFFFF         |  Random |  0-FF   |
 //  ---------------------------------------------------------------------------------------
 
-// TODO - Remove this example code
-//
-// Gwyn - This is how you can call the SET and GET for these macros.
-// The GET's  generally return an INT, except for the service data which is a 'long long'
-//
-//SET_HEADER(decodedAsciiMsg);
-//SET_PROTOCOL_VER(decodedAsciiMsg,PROTOCOL_VERSION);
-//SET_REQ_ACK(decodedAsciiMsg,ACKNOWLEDGE);
-//SET_SERVICE_ID(decodedAsciiMsg,4);
-//SET_SERVICE_DATA(decodedAsciiMsg,123456);
-//SET_REDUNDANT_INFO(decodedAsciiMsg,1234);
-//SET_CRC(decodedAsciiMsg,9876);
-//
-//GET_PROTOCOL_VER(decodedAsciiMsg, ver);
-//GET_REQ_ACK(decodedAsciiMsg, ack);
-//GET_SERVICE_ID(decodedAsciiMsg, sID);
-//GET_SERVICE_DATA(decodedAsciiMsg, sData);
-//GET_CRC(decodedAsciiMsg, crc);
-// TODO - End example code
-
 // Set the header of the string to 'IoT'
 #define SET_HEADER(stringArray) { \
     stringArray[0] = 'I'; \
@@ -81,7 +61,7 @@
 }
 
 // Returns 1 if the header matches
-#define IS_HEADER_VALID(array) (strncmp(array, "IoT", 3) ? 0 : 1)
+#define IS_HEADER_VALID(array, crcValid) ((strncmp(array, "IoT", 3) && crcValid) ? 0 : 1)
 
 #define SET_PROTOCOL_VER(array, version) { \
     array[3] = (char)version; \
@@ -138,14 +118,14 @@
     array[12] = (randomNumber & 0xFF); \
 }
 
+// TODO - Change this
 #define SET_CRC(array, crcValue) { \
     array[13] = ((crcValue & 0xFF00) >> 8); \
     array[14] = (crcValue & 0xFF); \
 }
 
 #define GET_CRC(array, crcValue) { \
-    crcValue = (array[13] << 8) - 0x30; \
-    crcValue |= array[14] - 0x30; \
+    crcValue = (int)ASCII_TO_BCD(&array[13]); \
 }
 
 #endif //IOT_TASK_3_PROTOCOL_H

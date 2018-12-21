@@ -37,4 +37,10 @@ unsigned char ASCII_TO_BCD(char ascii_text[2])
     return bcd_value;
 }
 
+void BCD_TO_ASCII(char *ascii_text, int bcd_value)
+{
+    *ascii_text = (bcd_value & 0xf0) >> 4;
+    *(ascii_text + 1) = (bcd_value & 0x0f);
+
+}
 #endif //IOT_TASK_3_UTILTIY_H

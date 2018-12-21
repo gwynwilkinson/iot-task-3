@@ -189,8 +189,8 @@ void onConnected(MicroBitEvent e) {
 
     char PIN[4];
     char dpk[21];
-    int isGood;
-    int crcVal;
+    bool crcIsValid = false;
+    int messageCrcValue;
 
     uBit.display.scroll("C");
     uBit.serial.send("BLE Connected\n");
@@ -210,8 +210,6 @@ void onConnected(MicroBitEvent e) {
         uBit.serial.send("BLE Received message: ");
         uBit.serial.send(uartBuffer);
         uBit.serial.send("\n");
-
-
 
         // If the per session salt is not set yet, use
         // a hard coded PIN and Salt.
@@ -235,15 +233,33 @@ void onConnected(MicroBitEvent e) {
 
         // Validate that the incoming message has been decoded correctly
         // TODO - Add CRC check here too
-        GET_CRC(decodedAsciiMsg, crcVal);
+        GET_CRC(decodedAsciiMsg, messageCrcValue);
+
+        messageCrcValue = (int)ASCII_TO_BCD(&decodedAsciiMsg[13]);
+
+        char tmpBuf[6];
+        sprintf(tmpBuf, "%01x\n", messageCrcValue);
+        uBit.serial.send("Message CRC Value: ");
+        uBit.serial.send(tmpBuf);
+
+        // Sleep to allow the serial send to finish before doing
+        // another. This prevents a uBit crash.
+        uBit.sleep(200);
+
         int checksum = ccitt_crc(decodedAsciiMsg,13);
-        if(crcVal == checksum){
-          isGood=1;
-        }else{
-          isGood=0;
+
+        sprintf(tmpBuf, "%01x\n", checksum);
+        uBit.serial.send("Calculated CRC Value: ");
+        uBit.serial.send(tmpBuf);
+
+        // TODO - Remove this once Android sends the correct CRC
+        checksum = 0xff;
+
+        if(messageCrcValue == checksum) {
+            crcIsValid = true;
         }
 
-        if (IS_HEADER_VALID(decodedAsciiMsg)) {
+        if (IS_HEADER_VALID(decodedAsciiMsg, crcIsValid)) {
 
             // Header and CRC are valid. Proceed with decoding the message
             int protocolVersion;
