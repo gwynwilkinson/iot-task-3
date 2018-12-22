@@ -8,7 +8,7 @@
 # define ACKNOWLEDGE 1
 
 // Defines for service IDs and Data
-#define SERVICE_SALT 0
+#define SERVICE_PER_SERSSION_SALT 0
 #define SERVICE_LED 1
 #define SERVICE_BUZZER 2
 #define SERVICE_RGB_LED 3
@@ -61,7 +61,7 @@
 }
 
 // Returns 1 if the header matches
-#define IS_HEADER_VALID(array, crcValid) ((strncmp(array, "IoT", 3) && crcValid) ? 0 : 1)
+#define IS_HEADER_VALID(array) (strncmp(array, "IoT", 3) ? 0 : 1)
 
 #define SET_PROTOCOL_VER(array, version) { \
     array[3] = (char)version; \

@@ -232,7 +232,6 @@ void onConnected(MicroBitEvent e) {
         decryptMessage(dpk);
 
         // Validate that the incoming message has been decoded correctly
-        // TODO - Add CRC check here too
         GET_CRC(decodedAsciiMsg, messageCrcValue);
 
         messageCrcValue = (int)ASCII_TO_BCD(&decodedAsciiMsg[13]);
@@ -252,15 +251,14 @@ void onConnected(MicroBitEvent e) {
         uBit.serial.send("Calculated CRC Value: ");
         uBit.serial.send(tmpBuf);
 
-        // TODO - Remove this once Android sends the correct CRC
-        checksum = 0xff;
-
         if(messageCrcValue == checksum) {
             crcIsValid = true;
         }
 
-        if (IS_HEADER_VALID(decodedAsciiMsg, crcIsValid)) {
+        // TODO - Remove when Gwyn has the android code
+        crcIsValid = true;
 
+        if (IS_HEADER_VALID(decodedAsciiMsg) && crcIsValid ) {
             // Header and CRC are valid. Proceed with decoding the message
             int protocolVersion;
             int requestAcknowledge;
@@ -296,10 +294,10 @@ void onConnected(MicroBitEvent e) {
                     GET_SERVICE_DATA(decodedAsciiMsg, serviceData);
 
                     switch (serviceID) {
-                        case SERVICE_SALT:
+                        case SERVICE_PER_SERSSION_SALT:
                             // We are being sent a new per session salt to use
                             // to decode all future messages.
-                            GET_SALT(decodedAsciiMsg, perSessionSalt);
+                        GET_SALT(decodedAsciiMsg, perSessionSalt);
                             uBit.serial.send("New Per Session Salt received. Salt = ");
                             uBit.serial.send(perSessionSalt);
                             uBit.serial.send("\n");
@@ -713,6 +711,10 @@ void onDisconnected(MicroBitEvent e)
     uBit.display.scroll("D");
     uBit.serial.send ("BLE Disconnected\n");
     connected = 0;
+
+    // Clear the per-session salt so that we can receive a new
+    // one the next time the client connects
+    perSessionSalt[0] = '\0';
 }
 
 
