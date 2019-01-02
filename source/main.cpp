@@ -135,17 +135,18 @@ void decryptMessage(char* dpk) {
     // Terminate the string
     decodedAsciiMsg[15] = 0;
 }
-
 /***********************************************************
  *
- * Function: onConnected()
+ * Function: generateDPK()
  *
- * Description: Main program loop that is executed whilst
- *              BLE is in a connected state
+ * Description: Generates the DPK from the PIN + Salt.
+ *              The combined string is passed through the SHA-1
+ *              hash function. The result is then truncated to
+ *              16 bytes (Size of the AES-128-ECB key) and used
+ *              as the key.
  *
  **********************************************************/
 void generateDPK(char dpk[21], char salt[], char PIN[4]) {
-
 
     // TODO - Change this size depending on our salt
     char dpkInput[34] = {0};
@@ -175,6 +176,186 @@ void generateDPK(char dpk[21], char salt[], char PIN[4]) {
     // SHA1 produces a 20 byte output. AES-128-ECB only needs a 16 byte string,
     // Truncate the dpk.
     dpk[16] = 0;
+}
+
+/***********************************************************
+ *
+ * Function: sendAck()
+ *
+ * Description: Send the Acknowledgement back to the client.
+ *              The protocol message is constructed based
+ *              on the Service ID and status code and then sent
+ *              over the BLE UART service.
+ *
+ **********************************************************/
+void sendAck(int serviceID, int serviceCode, int status) {
+
+    char buffer[32];
+
+    // Set the IOT Header
+    SET_HEADER(buffer);
+
+    // Set the protocol version
+    SET_PROTOCOL_VER(buffer, PROTOCOL_VERSION);
+
+    // Set the Request/Acknowledgement flag
+    SET_REQ_ACK(buffer, ACKNOWLEDGE);
+
+    // Set the Service ID Flag;
+    SET_SERVICE_ID(buffer, serviceID)
+
+    // Set the status
+    SET_SERVICE_DATA(buffer, status);
+
+    // Set the Random Digit data
+    SET_REDUNDANT_INFO(buffer);
+
+    // Set the CRC in the message
+    SET_CRC(buffer, ccitt_crc(buffer,13));
+
+    buffer[15] = '\0';
+
+    // Debug printout
+    uBit.serial.send("Response Code: ");
+
+    switch(serviceID) {
+        case SERVICE_LED:
+            uBit.serial.send("LED: ");
+
+            switch (serviceCode) {
+                case SERVICE_LED_OFF:
+                    uBit.serial.send("Off ");
+                    break;
+                case SERVICE_LED_ON:
+                    uBit.serial.send("On ");
+                    break;
+                case SERVICE_LED_SOS:
+                    uBit.serial.send("SoS ");
+                    break;
+                default:
+                    uBit.serial.send("Unknown ");
+                    break;
+            }
+
+            break;
+        case SERVICE_BUZZER:
+            uBit.serial.send("BUZZER: ");
+            switch (serviceCode) {
+                case SERVICE_BUZZER_OFF:
+                    uBit.serial.send("Off ");
+                    break;
+                case SERVICE_BUZZER_BASIC:
+                    uBit.serial.send("Basic ");
+                    break;
+                case SERVICE_BUZZER_SIREN:
+                    uBit.serial.send("Siren ");
+                    break;
+                case SERVICE_BUZZER_FANFARE:
+                    uBit.serial.send("Fanfare ");
+                    break;
+                default:
+                    uBit.serial.send("Unknown ");
+                    break;
+
+            }
+            break;
+        case SERVICE_RGB_LED:
+            uBit.serial.send("RGB LED: ");
+            switch (serviceCode) {
+                case SERVICE_RGB_OFF:
+                    uBit.serial.send("Off ");
+                    break;
+                case SERVICE_RGB_RED:
+                    uBit.serial.send("Red ");
+                    break;
+                case SERVICE_RGB_BLUE:
+                    uBit.serial.send("Blue ");
+                    break;
+                case SERVICE_RGB_GREEN:
+                    uBit.serial.send("Green ");
+                    break;
+                case SERVICE_RGB_MAGENTA:
+                    uBit.serial.send("Magenta ");
+                    break;
+                case SERVICE_RGB_YELLOW:
+                    uBit.serial.send("Yellow ");
+                    break;
+                case SERVICE_RGB_CYAN:
+                    uBit.serial.send("Cyan ");
+                    break;
+                case SERVICE_RGB_WHITE:
+                    uBit.serial.send("White ");
+                    break;
+                case SERVICE_RGB_PARTY:
+                    uBit.serial.send("Party ");
+                    break;
+                default:
+                    uBit.serial.send("Unknown ");
+                    break;
+
+            }
+            break;
+        case SERVICE_FAN:
+            uBit.serial.send("FAN: ");
+            switch (serviceCode) {
+
+                case SERVICE_FAN_OFF:
+                    uBit.serial.send("Off ");
+                    break;
+                case SERVICE_FAN_SLOW:
+                    uBit.serial.send("Slow ");
+                    break;
+                case SERVICE_FAN_MED:
+                    uBit.serial.send("Medium ");
+                    break;
+                case SERVICE_FAN_FAST:
+                    uBit.serial.send("Fast ");
+                    break;
+                default:
+                    uBit.serial.send("Unknown ");
+                    break;
+
+            }
+            break;
+
+        case SERVICE_PIN:
+            switch(serviceCode) {
+                case SERVICE_INCORRECT_PIN:
+                    uBit.serial.send("Incorrect PIN ");
+                    break;
+                default:
+                    break;
+            }
+            break;
+
+        case SERVICE_ID_UNKNOWN:
+            switch(serviceCode) {
+                default:
+                    uBit.serial.send("UNKNOWN ");
+                    break;
+            }
+            break;
+
+        default:
+            uBit.serial.send("UNKNOWN SERVICE");
+            break;
+    }
+
+    switch(status) {
+        case SERVICE_ACK_OK:
+            uBit.serial.send("- OK ");
+            break;
+        case SERVICE_ACK_FAILED:
+            uBit.serial.send("- FAILED! ");
+            break;
+        default:
+            break;
+    }
+
+    uBit.serial.send("\n");
+
+    uart->send(buffer);
+
 }
 
 /***********************************************************
@@ -256,7 +437,7 @@ void onConnected(MicroBitEvent e) {
         }
 
         // TODO - Remove when Gwyn has the android code
-        crcIsValid = true;
+//        crcIsValid = true;
 
         if (IS_HEADER_VALID(decodedAsciiMsg) && crcIsValid ) {
             // Header and CRC are valid. Proceed with decoding the message
@@ -322,14 +503,11 @@ void onConnected(MicroBitEvent e) {
                                 LED.setDigitalValue(1);
 
                                 // Send a notification back to the client
-                                uart->send("LED On");
+                                sendAck(SERVICE_LED, SERVICE_LED_ON, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("LED on");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("LED on");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_LED_OFF) {
                                 // Switch off the power to the LED
                                 LED.setDigitalValue(0);
@@ -337,15 +515,12 @@ void onConnected(MicroBitEvent e) {
                                 // If the LED SoS is running, disable it
                                 LEDSoSOn = false;
 
-                                // Send a notification back to the phone
-                                uart->send("LED Off");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_LED, SERVICE_LED_OFF, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("LED off");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("LED off");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_LED_SOS) {
                                 // Perform SOS actions
                                 LEDSoSOn = true;
@@ -355,23 +530,15 @@ void onConnected(MicroBitEvent e) {
                                 create_fiber(LED_SOS);
 //                                }
 
-                                // Send a notification back to the phone
-                                uart->send("LED SOS");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_LED, SERVICE_LED_SOS, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("LED SOS");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("LED SOS");
-                                uBit.serial.send("\n");
                             } else {
-                                // Unsupported LED action.
-                                uart->send("Unknown LED request");
-
-                                // Send the debug info to the serial device
-                                uBit.serial.send("LED Unknown Service Request");
-                                uBit.serial.send(serviceData);
-                                uBit.serial.send("\n");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_LED, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
                             }
                             break;
 
@@ -386,65 +553,48 @@ void onConnected(MicroBitEvent e) {
                                 BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
 
                                 // Send a notification back to the client
-                                uart->send("Buzzer On");
+                                sendAck(SERVICE_BUZZER, SERVICE_BUZZER_BASIC, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Buzzer on");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Buzzer on");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_BUZZER_OFF) {
                                 // Switch off the power to the Buzzer
                                 BUZZER.setDigitalValue(0);
 
-                                // Send a notification back to the phone
-                                uart->send("Buzzer Off");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_BUZZER, SERVICE_BUZZER_OFF, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Buzzer off");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Buzzer off");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_BUZZER_SIREN) {
                                 // Make buzzer act as a siren
                                 // TODO - Cannot use while(1)
 //                                while(1){
                                 buzzSiren();
 //                                }
-                                // Send a notification back to the phone
-                                uart->send("Buzzer Siren");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_BUZZER, SERVICE_BUZZER_SIREN, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Buzzer Siren");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Buzzer Siren");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_BUZZER_FANFARE) {
                                 // Make buzzer play a fanfare
                                 // TODO - Cannot use while(1)
 //                                while(1){
                                 buzzFanfare();
 //                                  }
-                                // Send a notification back to the phone
-                                uart->send("Buzzer Fanfare");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_BUZZER, SERVICE_BUZZER_FANFARE, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Buzzer Fanfare");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Buzzer Fanfare");
-                                uBit.serial.send("\n");
                             } else {
-                                // Unsupported Buzzer action.
-                                uart->send("Unknown Buzzer request");
-
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Buzzer Unknown Service Request");
-                                uBit.serial.send(serviceData);
-                                uBit.serial.send("\n");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_BUZZER, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
                             }
                             break;
 
@@ -456,62 +606,47 @@ void onConnected(MicroBitEvent e) {
                             if (serviceData == SERVICE_FAN_OFF) {
                                 // Switch off the power to the Fan
                                 FAN.setDigitalValue(0);
+
                                 // Send a notification back to the client
-                                uart->send("Fan off");
+                                sendAck(SERVICE_FAN, SERVICE_FAN_OFF, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Fan off");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Fan off");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_FAN_SLOW) {
                                 // Set Fan power to ~25%
                                 FAN.setAnalogValue(255);
 
-                                // Send a notification back to the phone
-                                uart->send("Fan setting: SLOW");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_FAN, SERVICE_FAN_SLOW, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Fan setting: SLOW");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Fan setting: SLOW");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_FAN_MED) {
                                 // Set Fan power to ~50%
                                 FAN.setAnalogValue(511);
 
-                                // Send a notification back to the phone
-                                uart->send("Fan setting: MED");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_FAN, SERVICE_FAN_MED, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Fan setting: MED");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Fan setting: MED");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_FAN_FAST) {
                                 // Set Fan power to 100%
                                 FAN.setAnalogValue(1023);
 
-                                // Send a notification back to the phone
-                                uart->send("Fan setting: FAST");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_FAN, SERVICE_FAN_FAST, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("Fan setting: FAST");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Fan setting: FAST");
-                                uBit.serial.send("\n");
                             } else {
                                 // Unsupported Fan action.
-                                uart->send("Unknown Fan request");
-
-                                // Send the debug info to the serial device
-                                uBit.serial.send("Fan Unknown Service Request");
-                                uBit.serial.send(serviceData);
-                                uBit.serial.send("\n");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_FAN, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
                             }
                             break;
 
@@ -523,120 +658,97 @@ void onConnected(MicroBitEvent e) {
                             if (serviceData == SERVICE_RGB_OFF) {
                                 // Switch off the power to the Fan
                                 FAN.setDigitalValue(0);
+
                                 // Send a notification back to the client
-                                uart->send("RGB LED: off");
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_OFF, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED off");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED off");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_RED) {
                                 // Set RGB LED to Red
                                 RGB_RED.setDigitalValue(1);
                                 RGB_GREEN.setDigitalValue(0);
                                 RGB_BLUE.setDigitalValue(0);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Red");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_RED, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: Red");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Red");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_BLUE) {
                                 // Set RGB LED to Blue
                                 RGB_RED.setDigitalValue(0);
                                 RGB_GREEN.setDigitalValue(0);
                                 RGB_BLUE.setDigitalValue(1);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Blue");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_BLUE, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: Blue");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Blue");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_GREEN) {
                                 // Set RGB LED to Green
                                 RGB_RED.setDigitalValue(0);
                                 RGB_GREEN.setDigitalValue(1);
                                 RGB_BLUE.setDigitalValue(0);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Green");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_GREEN, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: Green");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Green");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_MAGENTA) {
                                 // Set RGB LED to Magenta
                                 RGB_RED.setDigitalValue(1);
                                 RGB_GREEN.setDigitalValue(0);
                                 RGB_BLUE.setDigitalValue(1);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Magenta");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_MAGENTA, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: Magenta");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Magenta");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_YELLOW) {
                                 // Set RGB LED to Yellow
                                 RGB_RED.setDigitalValue(1);
                                 RGB_GREEN.setDigitalValue(1);
                                 RGB_BLUE.setDigitalValue(0);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Yellow");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_YELLOW, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: Yellow");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Yellow");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_CYAN) {
                                 // Set RGB LED to Cyan
                                 RGB_RED.setDigitalValue(0);
                                 RGB_GREEN.setDigitalValue(1);
                                 RGB_BLUE.setDigitalValue(1);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Cyan");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_CYAN, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: Cyan");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Cyan");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_WHITE) {
                                 // Set RGB LED to White
                                 RGB_RED.setDigitalValue(1);
                                 RGB_GREEN.setDigitalValue(1);
                                 RGB_BLUE.setDigitalValue(1);
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: White");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_WHITE, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("RGB LED setting: White");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: White");
-                                uBit.serial.send("\n");
                             } else if (serviceData == SERVICE_RGB_PARTY) {
                                 // Activate Party Mode - Merry Christmas!
                                 // TODO - Cannot use while(1)
@@ -644,33 +756,25 @@ void onConnected(MicroBitEvent e) {
                                 rgbParty();
 //                              }
 
-                                // Send a notification back to the phone
-                                uart->send("RGB LED: Party");
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_RGB_PARTY, SERVICE_ACK_OK);
 
                                 // Display the result on the LEDs
                                 uBit.display.scrollAsync("LET'S PARTY");
 
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB LED setting: Party");
-                                uBit.serial.send("\n");
                             } else {
-                                // Unsupported Fan action.
-                                uart->send("Unknown RGB request");
-
-                                // Send the debug info to the serial device
-                                uBit.serial.send("RGB Unknown Service Request");
-                                uBit.serial.send(serviceData);
-                                uBit.serial.send("\n");
+                                // Unsupported RGB LED action.
+                                // Send a notification back to the client
+                                sendAck(SERVICE_RGB_LED, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
                             }
                             break;
 
                         default:
                             // Currently Unsupported Service request.
-                            uBit.serial.send("Unsupported service request:- ");
-                            uBit.serial.send(serviceID);
+                            // Send a notification back to the client
+                            sendAck(SERVICE_ID_UNKNOWN, SERVICE_UNKNOWN, SERVICE_ACK_OK);
+                            uBit.serial.send("Unsupported Service request:- ");
                             uBit.serial.send("\n");
-
-                            uart->send(serviceID);
 
                             break;
                     }
@@ -688,11 +792,7 @@ void onConnected(MicroBitEvent e) {
         } else {
             // Message did not decode correctly and is invalid
             // Report incorrect pin used.
-            uBit.serial.send("Incorrect PIN entered");
-            uBit.serial.send("\n");
-
-            // Send a message back to the client informing of the wrong PIN
-            uart->send("Incorrect PIN");
+            sendAck(SERVICE_PIN, SERVICE_INCORRECT_PIN, SERVICE_ACK_FAILED);
 
             uBit.display.scrollAsync("Incorrect PIN");
         }

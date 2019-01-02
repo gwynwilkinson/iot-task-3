@@ -13,6 +13,8 @@
 #define SERVICE_BUZZER 2
 #define SERVICE_RGB_LED 3
 #define SERVICE_FAN 4
+#define SERVICE_PIN 8
+#define SERVICE_ID_UNKNOWN 9
 
 // Service Data for LED
 #define SERVICE_LED_OFF 0
@@ -42,6 +44,13 @@
 #define SERVICE_FAN_MED 2
 #define SERVICE_FAN_FAST 3
 
+// Service Data for Acknowledgements
+#define SERVICE_ACK_FAILED 0
+#define SERVICE_ACK_OK 1
+
+#define SERVICE_INCORRECT_PIN 9
+#define SERVICE_UNKNOWN 99
+
 // Protocol Message definition
 
 //  ---------------------------------------------------------------------------------------
@@ -64,7 +73,7 @@
 #define IS_HEADER_VALID(array) (strncmp(array, "IoT", 3) ? 0 : 1)
 
 #define SET_PROTOCOL_VER(array, version) { \
-    array[3] = (char)version; \
+    array[3] = (char)version + 0x30; \
 }
 
 #define GET_PROTOCOL_VER(array, version) { \
@@ -72,7 +81,7 @@
 }
 
 #define SET_REQ_ACK(array, value) { \
-    array[4] = (char)value; \
+    array[4] = (char)value + 0x30; \
 }
 
 #define GET_REQ_ACK(array, value) { \
@@ -80,7 +89,7 @@
 }
 
 #define SET_SERVICE_ID(array, serviceID) { \
-    array[5] = (char)serviceID; \
+    array[5] = (char)serviceID + 0x30; \
 }
 
 #define GET_SERVICE_ID(array, serviceID) { \
@@ -88,11 +97,11 @@
 }
 
 #define SET_SERVICE_DATA(array, serviceData) { \
-    array[6] = ((serviceData & 0xFF00000000) >> 32); \
-    array[7] = ((serviceData & 0xFF000000) >> 24); \
-    array[8] = ((serviceData & 0xFF0000) >> 16); \
-    array[9] = ((serviceData & 0xFF00) >> 8); \
-    array[10] = ((serviceData & 0xFF) ); \
+    array[6] = ((serviceData & 0xF0000) >> 32) + 0x30; \
+    array[7] = ((serviceData & 0xF000) >> 24) + 0x30; \
+    array[8] = ((serviceData & 0xF00) >> 16) + 0x30; \
+    array[9] = ((serviceData & 0xF0) >> 8) + 0x30; \
+    array[10] = ((serviceData & 0xF) ) + 0x30; \
 }
 
 #define GET_SERVICE_DATA(array, serviceData) { \
@@ -113,15 +122,13 @@
 }
 
 
-#define SET_REDUNDANT_INFO(array, randomNumber) { \
-    array[11] = ((randomNumber & 0xFF00) >> 8); \
-    array[12] = (randomNumber & 0xFF); \
+#define SET_REDUNDANT_INFO(array) { \
+    sprintf(&array[11], "%02x", rand() % 0xff); \
 }
 
 // TODO - Change this
 #define SET_CRC(array, crcValue) { \
-    array[13] = ((crcValue & 0xFF00) >> 8); \
-    array[14] = (crcValue & 0xFF); \
+    sprintf(&array[13], "%02x", crcValue); \
 }
 
 #define GET_CRC(array, crcValue) { \
