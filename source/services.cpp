@@ -1,10 +1,9 @@
-//
-// Created by jon on 29/11/18.
-//
 #include "MicroBit.h"
 #include "MicroBitUARTService.h"
+#include "communication.h"
 #include "main.h"
 #include "services.h"
+#include "protocol.h"
 #include <stdbool.h>
 
 int beat = 500;
@@ -29,7 +28,66 @@ void flashScreen(){
 /*****************************************************************************************************************
  * LED Functions
  ****************************************************************************************************************/
+/***********************************************************
+ *
+ * Function: processLEDRequest()
+ *
+ * Description: Determines the LED action to take
+ *
+ **********************************************************/
+void processLedRequest(int serviceData) {
+    if (serviceData == SERVICE_LED_ON) {
 
+        // If the SoS function is running, wait for it to
+        // finish its round.
+        if (LEDSoSOn) {
+            LEDSoSOn = false;
+            while (!LEDSoSFinished)
+                uBit.sleep(500);
+        }
+
+        // Switch on the power to the LED
+        LED.setDigitalValue(1);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_LED, SERVICE_LED_ON, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("LED on");
+
+    } else if (serviceData == SERVICE_LED_OFF) {
+        // Switch off the power to the LED
+        LED.setDigitalValue(0);
+
+        // If the LED SoS is running, disable it
+        LEDSoSOn = false;
+
+        // Send a notification back to the client
+        sendAck(SERVICE_LED, SERVICE_LED_OFF, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("LED off");
+
+    } else if (serviceData == SERVICE_LED_SOS) {
+        // Perform SOS actions
+        LEDSoSOn = true;
+
+        // TODO - Cannot use while(1)
+        //                                while(1){
+        create_fiber(LED_SOS);
+        //                                }
+
+        // Send a notification back to the client
+        sendAck(SERVICE_LED, SERVICE_LED_SOS, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("LED SOS");
+
+    } else {
+        // Send a notification back to the client
+        sendAck(SERVICE_LED, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
+    }
+}
 /***********************************************************
  *
  * Function: LED_SOS()
@@ -97,7 +155,65 @@ void LED_SOS(){
 /*****************************************************************************************************************
  * Buzzer Functions
  ****************************************************************************************************************/
+/***********************************************************
+ *
+ * Function: processBuzzerRequest()
+ *
+ * Description: Determines the Buzzer action to take
+ *
+ **********************************************************/
+void processBuzzerRequest(int serviceData) {
 
+    if (serviceData == SERVICE_BUZZER_BASIC) {
+        // Send single note to the Buzzer
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+
+        // Send a notification back to the client
+        sendAck(SERVICE_BUZZER, SERVICE_BUZZER_BASIC, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Buzzer on");
+
+    } else if (serviceData == SERVICE_BUZZER_OFF) {
+        // Switch off the power to the Buzzer
+        BUZZER.setDigitalValue(0);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_BUZZER, SERVICE_BUZZER_OFF, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Buzzer off");
+
+    } else if (serviceData == SERVICE_BUZZER_SIREN) {
+        // Make buzzer act as a siren
+        // TODO - Cannot use while(1)
+//                                while(1){
+        buzzSiren();
+//                                }
+        // Send a notification back to the client
+        sendAck(SERVICE_BUZZER, SERVICE_BUZZER_SIREN, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Buzzer Siren");
+
+    } else if (serviceData == SERVICE_BUZZER_FANFARE) {
+        // Make buzzer play a fanfare
+        // TODO - Cannot use while(1)
+//                                while(1){
+        buzzFanfare();
+//                                  }
+        // Send a notification back to the client
+        sendAck(SERVICE_BUZZER, SERVICE_BUZZER_FANFARE, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Buzzer Fanfare");
+
+    } else {
+        // Send a notification back to the client
+        sendAck(SERVICE_BUZZER, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
+    }
+}
 /***********************************************************
  *
  * Function: buzzSiren()
@@ -197,8 +313,189 @@ void buzzFanfare(){
 }
 
 /*****************************************************************************************************************
+ * FAN Functions
+ ****************************************************************************************************************/
+/***********************************************************
+ *
+ * Function: processFanRequest()
+ *
+ * Description: Determines the Fan action to take
+ *
+ **********************************************************/
+void processFanRequest(int serviceData) {
+
+    if (serviceData == SERVICE_FAN_OFF) {
+        // Switch off the power to the Fan
+        FAN.setDigitalValue(0);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_FAN, SERVICE_FAN_OFF, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Fan off");
+
+    } else if (serviceData == SERVICE_FAN_SLOW) {
+        // Set Fan power to ~25%
+        FAN.setAnalogValue(255);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_FAN, SERVICE_FAN_SLOW, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Fan setting: SLOW");
+
+    } else if (serviceData == SERVICE_FAN_MED) {
+        // Set Fan power to ~50%
+        FAN.setAnalogValue(511);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_FAN, SERVICE_FAN_MED, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Fan setting: MED");
+
+    } else if (serviceData == SERVICE_FAN_FAST) {
+        // Set Fan power to 100%
+        FAN.setAnalogValue(1023);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_FAN, SERVICE_FAN_FAST, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("Fan setting: FAST");
+
+    } else {
+        // Unsupported Fan action.
+        // Send a notification back to the client
+        sendAck(SERVICE_FAN, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
+    }
+}
+
+/*****************************************************************************************************************
  * RGB LED Functions
  ****************************************************************************************************************/
+/***********************************************************
+ *
+ * Function: processRgbLedRequest()
+ *
+ * Description: Determines the RGB LED action to take
+ *
+ **********************************************************/
+void processRgbLedRequest(int serviceData) {
+
+    if (serviceData == SERVICE_RGB_OFF) {
+        // Switch off the power to the Fan
+        FAN.setDigitalValue(0);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_OFF, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED off");
+
+    } else if (serviceData == SERVICE_RGB_RED) {
+        // Set RGB LED to Red
+        RGB_RED.setDigitalValue(1);
+        RGB_GREEN.setDigitalValue(0);
+        RGB_BLUE.setDigitalValue(0);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_RED, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: Red");
+
+    } else if (serviceData == SERVICE_RGB_BLUE) {
+        // Set RGB LED to Blue
+        RGB_RED.setDigitalValue(0);
+        RGB_GREEN.setDigitalValue(0);
+        RGB_BLUE.setDigitalValue(1);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_BLUE, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: Blue");
+
+    } else if (serviceData == SERVICE_RGB_GREEN) {
+        // Set RGB LED to Green
+        RGB_RED.setDigitalValue(0);
+        RGB_GREEN.setDigitalValue(1);
+        RGB_BLUE.setDigitalValue(0);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_GREEN, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: Green");
+
+    } else if (serviceData == SERVICE_RGB_MAGENTA) {
+        // Set RGB LED to Magenta
+        RGB_RED.setDigitalValue(1);
+        RGB_GREEN.setDigitalValue(0);
+        RGB_BLUE.setDigitalValue(1);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_MAGENTA, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: Magenta");
+
+    } else if (serviceData == SERVICE_RGB_YELLOW) {
+        // Set RGB LED to Yellow
+        RGB_RED.setDigitalValue(1);
+        RGB_GREEN.setDigitalValue(1);
+        RGB_BLUE.setDigitalValue(0);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_YELLOW, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: Yellow");
+
+    } else if (serviceData == SERVICE_RGB_CYAN) {
+        // Set RGB LED to Cyan
+        RGB_RED.setDigitalValue(0);
+        RGB_GREEN.setDigitalValue(1);
+        RGB_BLUE.setDigitalValue(1);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_CYAN, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: Cyan");
+
+    } else if (serviceData == SERVICE_RGB_WHITE) {
+        // Set RGB LED to White
+        RGB_RED.setDigitalValue(1);
+        RGB_GREEN.setDigitalValue(1);
+        RGB_BLUE.setDigitalValue(1);
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_WHITE, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("RGB LED setting: White");
+
+    } else if (serviceData == SERVICE_RGB_PARTY) {
+        // Activate Party Mode - Merry Christmas!
+        // TODO - Cannot use while(1)
+//                                while(1){
+        rgbParty();
+//                              }
+
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_RGB_PARTY, SERVICE_ACK_OK);
+
+        // Display the result on the LEDs
+        uBit.display.scrollAsync("LET'S PARTY");
+
+    } else {
+        // Unsupported RGB LED action.
+        // Send a notification back to the client
+        sendAck(SERVICE_RGB_LED, SERVICE_UNKNOWN, SERVICE_ACK_FAILED);
+    }
+}
 
 /***********************************************************
 *

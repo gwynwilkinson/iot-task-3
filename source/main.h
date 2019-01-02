@@ -14,4 +14,6 @@ extern MicroBitPin FAN;
 extern bool LEDSoSOn;
 extern bool LEDSoSFinished;
 
+extern char uartBuffer[33];
+extern char decodedAsciiMsg[33];
 #endif //IOT_TASK_3_MAIN_H
