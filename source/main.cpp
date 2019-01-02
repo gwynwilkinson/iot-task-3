@@ -437,7 +437,7 @@ void onConnected(MicroBitEvent e) {
         }
 
         // TODO - Remove when Gwyn has the android code
-//        crcIsValid = true;
+        crcIsValid = true;
 
         if (IS_HEADER_VALID(decodedAsciiMsg) && crcIsValid ) {
             // Header and CRC are valid. Proceed with decoding the message
