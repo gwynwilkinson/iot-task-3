@@ -97,11 +97,11 @@
 }
 
 #define SET_SERVICE_DATA(array, serviceData) { \
-    array[6] = ((serviceData & 0xF0000) >> 32) + 0x30; \
-    array[7] = ((serviceData & 0xF000) >> 24) + 0x30; \
-    array[8] = ((serviceData & 0xF00) >> 16) + 0x30; \
-    array[9] = ((serviceData & 0xF0) >> 8) + 0x30; \
-    array[10] = ((serviceData & 0xF) ) + 0x30; \
+    array[6] = ((serviceData & 0xFF00000000) >> 32) + 0x30; \
+    array[7] = ((serviceData & 0xFF000000) >> 24) + 0x30; \
+    array[8] = ((serviceData & 0xFF0000) >> 16) + 0x30; \
+    array[9] = ((serviceData & 0xFF00) >> 8) + 0x30; \
+    array[10] = ((serviceData & 0xFF) ) + 0x30; \
 }
 
 #define GET_SERVICE_DATA(array, serviceData) { \
