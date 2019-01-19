@@ -8,7 +8,7 @@
 # define ACKNOWLEDGE 1
 
 // Defines for service IDs and Data
-#define SERVICE_PER_SERSSION_SALT 0
+#define SERVICE_PER_SESSION_SALT 0
 #define SERVICE_LED 1
 #define SERVICE_BUZZER 2
 #define SERVICE_RGB_LED 3

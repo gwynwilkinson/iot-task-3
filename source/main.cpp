@@ -209,7 +209,7 @@ void onConnected(MicroBitEvent e) {
                     GET_SERVICE_DATA(decodedAsciiMsg, serviceData);
 
                     switch (serviceID) {
-                        case SERVICE_PER_SERSSION_SALT:
+                        case SERVICE_PER_SESSION_SALT:
                             // We are being sent a new per session salt to use
                             // to decode all future messages.
                             GET_SALT(decodedAsciiMsg, perSessionSalt);

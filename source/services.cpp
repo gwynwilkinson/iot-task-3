@@ -72,10 +72,7 @@ void processLedRequest(int serviceData) {
         // Perform SOS actions
         LEDSoSOn = true;
 
-        // TODO - Cannot use while(1)
-        //                                while(1){
         create_fiber(LED_SOS);
-        //                                }
 
         // Send a notification back to the client
         sendAck(SERVICE_LED, SERVICE_LED_SOS, SERVICE_ACK_OK);
