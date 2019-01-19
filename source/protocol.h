@@ -126,7 +126,6 @@
     sprintf(&array[11], "%02x", rand() % 0xff); \
 }
 
-// TODO - Change this
 #define SET_CRC(array, crcValue) { \
     sprintf(&array[13], "%02x", crcValue); \
 }

@@ -50,7 +50,6 @@ void decryptMessage(char* dpk) {
  **********************************************************/
 void generateDPK(char dpk[21], char salt[], char PIN[4]) {
 
-    // TODO - Change this size depending on our salt
     char dpkInput[34] = {0};
     char hexresult[41];
     size_t offset;

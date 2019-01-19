@@ -170,9 +170,6 @@ void onConnected(MicroBitEvent e) {
             crcIsValid = true;
         }
 
-        // TODO - Remove when Gwyn has the android code
-        crcIsValid = true;
-
         if (IS_HEADER_VALID(decodedAsciiMsg) && crcIsValid ) {
             // Header and CRC are valid. Proceed with decoding the message
             int protocolVersion;
@@ -393,8 +390,6 @@ void onButtonB(MicroBitEvent e)
 
             }else if(fCollectDigit1)
             {
-                //TODO - Remove
-
                 // disable both buttons and flash the entered digit 3 times
                 fButtonAWait = true;
                 fButtonBWait = true;
