@@ -49,8 +49,8 @@ unsigned int digit[3] = {0,0,0};
 bool fButtonAWait = false;
 bool fButtonBWait = false;
 
-bool LEDSoSOn = false;
-bool LEDSoSFinished = true;
+
+
 
 char perSessionSalt[6] = "";
 

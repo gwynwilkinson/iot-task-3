@@ -7,6 +7,17 @@
 #include <stdbool.h>
 
 int beat = 500;
+bool LEDSoSOn = false;
+bool LEDSoSFinished = true;
+
+bool SirenOn = false;
+bool SirenFinished = true;
+
+bool FanfareOn = false;
+bool FanfareFinished = true;
+
+bool PartyOn = false;
+bool PartyFinished = true;
 
 /***********************************************************
  *
@@ -162,6 +173,20 @@ void LED_SOS(){
 void processBuzzerRequest(int serviceData) {
 
     if (serviceData == SERVICE_BUZZER_BASIC) {
+
+        // If the Siren function is running, wait for it to
+        // finish its round.
+        if (SirenOn){
+            SirenOn = false;
+            while (!SirenFinished)
+                uBit.sleep(500);
+        } else if (FanfareOn){
+            FanfareOn = false;
+            while (!FanfareFinished)
+                uBit.sleep(500);
+        }
+
+
         // Send single note to the Buzzer
         BUZZER.setAnalogValue(511);     // square wave
         BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
@@ -176,6 +201,9 @@ void processBuzzerRequest(int serviceData) {
         // Switch off the power to the Buzzer
         BUZZER.setDigitalValue(0);
 
+        // If the Siren is running, disable it
+        SirenOn = false;
+
         // Send a notification back to the client
         sendAck(SERVICE_BUZZER, SERVICE_BUZZER_OFF, SERVICE_ACK_OK);
 
@@ -183,11 +211,17 @@ void processBuzzerRequest(int serviceData) {
         uBit.display.scrollAsync("Buzzer off");
 
     } else if (serviceData == SERVICE_BUZZER_SIREN) {
-        // Make buzzer act as a siren
-        // TODO - Cannot use while(1)
-//                                while(1){
-        buzzSiren();
-//                                }
+
+        if (FanfareOn){
+            FanfareOn = false;
+            while (!FanfareFinished)
+                uBit.sleep(500);
+        }
+        // Perform Siren actions
+        SirenOn = true;
+
+        create_fiber(buzzSiren);
+
         // Send a notification back to the client
         sendAck(SERVICE_BUZZER, SERVICE_BUZZER_SIREN, SERVICE_ACK_OK);
 
@@ -195,10 +229,16 @@ void processBuzzerRequest(int serviceData) {
         uBit.display.scrollAsync("Buzzer Siren");
 
     } else if (serviceData == SERVICE_BUZZER_FANFARE) {
-        // Make buzzer play a fanfare
-        // TODO - Cannot use while(1)
-//                                while(1){
-        buzzFanfare();
+
+        if (SirenOn){
+            SirenOn = false;
+            while (!SirenFinished)
+                uBit.sleep(500);
+        }
+
+        FanfareOn = true;
+
+        create_fiber(buzzFanfare);
 //                                  }
         // Send a notification back to the client
         sendAck(SERVICE_BUZZER, SERVICE_BUZZER_FANFARE, SERVICE_ACK_OK);
@@ -219,12 +259,26 @@ void processBuzzerRequest(int serviceData) {
  *
  **********************************************************/
 void buzzSiren(){
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(400);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(5102); // note G3 = freq 196.00Hz
-    uBit.sleep(400);
+
+    SirenFinished = false;
+
+    while (1) {
+      if (SirenOn){
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+        uBit.sleep(400);
+        BUZZER.setAnalogValue(511);     // square wave
+        BUZZER.setAnalogPeriodUs(5102); // note G3 = freq 196.00Hz
+        uBit.sleep(400);
+      }else{
+        // Another fibre has terminated the Siren
+        SirenFinished = true;
+        release_fiber();
+        break;
+      }
+    }
+
+
 }
 
 /***********************************************************
@@ -236,76 +290,87 @@ void buzzSiren(){
  **********************************************************/
 void buzzFanfare(){
 
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2863); // note F4 = freq 349.23Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
-    uBit.sleep(beat/2);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2025); // note B4 = freq 493.88Hz
-    uBit.sleep(beat/2);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
-    uBit.sleep(2*beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(4049); // note B3 = freq 246.94Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setAnalogValue(511);     // square wave
-    BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
-    uBit.sleep(beat);
-    BUZZER.setDigitalValue(0);
+    FanfareFinished = false;
+
+    while (1) {
+      if (FanfareOn){
+
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(2863); // note F4 = freq 349.23Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
+          uBit.sleep(beat/2);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(2025); // note B4 = freq 493.88Hz
+          uBit.sleep(beat/2);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(1911); // note C5 = freq 523.25Hz
+          uBit.sleep(2*beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(2273); // note A4 = freq 440.00Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(2551); // note G4 = freq 392.00Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(4049); // note B3 = freq 246.94Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3033); // note E4 = freq 329.63Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+          uBit.sleep(beat);
+          BUZZER.setAnalogValue(511);     // square wave
+          BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
+          uBit.sleep(beat);
+          BUZZER.setDigitalValue(0);
+        }else{
+          //Another fibre has terminated the Fanfare
+          FanfareFinished = true;
+          break;
+        }
+      }
 
 }
 
@@ -384,6 +449,9 @@ void processRgbLedRequest(int serviceData) {
         // Switch off the power to the Fan
         FAN.setDigitalValue(0);
 
+        // If Party is running, end it
+        PartyOn = false;
+
         // Send a notification back to the client
         sendAck(SERVICE_RGB_LED, SERVICE_RGB_OFF, SERVICE_ACK_OK);
 
@@ -391,6 +459,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED off");
 
     } else if (serviceData == SERVICE_RGB_RED) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to Red
         RGB_RED.setDigitalValue(1);
         RGB_GREEN.setDigitalValue(0);
@@ -403,6 +480,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: Red");
 
     } else if (serviceData == SERVICE_RGB_BLUE) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to Blue
         RGB_RED.setDigitalValue(0);
         RGB_GREEN.setDigitalValue(0);
@@ -415,6 +501,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: Blue");
 
     } else if (serviceData == SERVICE_RGB_GREEN) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to Green
         RGB_RED.setDigitalValue(0);
         RGB_GREEN.setDigitalValue(1);
@@ -427,6 +522,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: Green");
 
     } else if (serviceData == SERVICE_RGB_MAGENTA) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to Magenta
         RGB_RED.setDigitalValue(1);
         RGB_GREEN.setDigitalValue(0);
@@ -439,6 +543,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: Magenta");
 
     } else if (serviceData == SERVICE_RGB_YELLOW) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to Yellow
         RGB_RED.setDigitalValue(1);
         RGB_GREEN.setDigitalValue(1);
@@ -451,6 +564,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: Yellow");
 
     } else if (serviceData == SERVICE_RGB_CYAN) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to Cyan
         RGB_RED.setDigitalValue(0);
         RGB_GREEN.setDigitalValue(1);
@@ -463,6 +585,15 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: Cyan");
 
     } else if (serviceData == SERVICE_RGB_WHITE) {
+
+        // If the Party function is running, wait for it to
+        // end.
+        if (PartyOn) {
+          PartyOn = false;
+          while (!PartyFinished)
+              uBit.sleep(500);
+        }
+
         // Set RGB LED to White
         RGB_RED.setDigitalValue(1);
         RGB_GREEN.setDigitalValue(1);
@@ -475,11 +606,11 @@ void processRgbLedRequest(int serviceData) {
         uBit.display.scrollAsync("RGB LED setting: White");
 
     } else if (serviceData == SERVICE_RGB_PARTY) {
-        // Activate Party Mode - Merry Christmas!
-        // TODO - Cannot use while(1)
-//                                while(1){
-        rgbParty();
-//                              }
+
+        // Perform Party actions
+        PartyOn = true;
+
+        create_fiber(rgbParty);
 
         // Send a notification back to the client
         sendAck(SERVICE_RGB_LED, SERVICE_RGB_PARTY, SERVICE_ACK_OK);
@@ -502,20 +633,33 @@ void processRgbLedRequest(int serviceData) {
 *
 **********************************************************/
 void rgbParty(){
-    RGB_RED.setDigitalValue(1);   //Red
-    RGB_GREEN.setDigitalValue(0);
-    RGB_BLUE.setDigitalValue(0);
-    uBit.sleep(3000);
-    RGB_GREEN.setDigitalValue(1); //Yellow
-    uBit.sleep(300);
-    RGB_RED.setDigitalValue(0);   //Green
-    uBit.sleep(300);
-    RGB_BLUE.setDigitalValue(1);  //Cyan
-    uBit.sleep(300);
-    RGB_GREEN.setDigitalValue(0); //Blue
-    uBit.sleep(300);
-    RGB_RED.setDigitalValue(1);   //Magenta
-    uBit.sleep(300);
-    RGB_GREEN.setDigitalValue(1); //White
-    uBit.sleep(300);
+
+    PartyFinished = false;
+
+    while(1){
+      if (PartyOn){
+        RGB_RED.setDigitalValue(1);   //Red
+        RGB_GREEN.setDigitalValue(0);
+        RGB_BLUE.setDigitalValue(0);
+        uBit.sleep(3000);
+        RGB_GREEN.setDigitalValue(1); //Yellow
+        uBit.sleep(300);
+        RGB_RED.setDigitalValue(0);   //Green
+        uBit.sleep(300);
+        RGB_BLUE.setDigitalValue(1);  //Cyan
+        uBit.sleep(300);
+        RGB_GREEN.setDigitalValue(0); //Blue
+        uBit.sleep(300);
+        RGB_RED.setDigitalValue(1);   //Magenta
+        uBit.sleep(300);
+        RGB_GREEN.setDigitalValue(1); //White
+        uBit.sleep(300);
+      }else{
+        // Another fibre has ended the party. :(
+        PartyFinished = true;
+        release_fiber();
+        break;
+      }
+    }
+
 }
