@@ -365,6 +365,7 @@ void buzzFanfare(){
           BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
           uBit.sleep(beat);
           BUZZER.setDigitalValue(0);
+          FanfareOn = false;
         }else{
           //Another fibre has terminated the Fanfare
           FanfareFinished = true;
