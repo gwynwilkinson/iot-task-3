@@ -365,6 +365,7 @@ void buzzFanfare(){
           BUZZER.setAnalogPeriodUs(3405); // note D4 = freq 293.66Hz
           uBit.sleep(beat);
           BUZZER.setDigitalValue(0);
+          FanfareOn = false;
         }else{
           //Another fibre has terminated the Fanfare
           FanfareFinished = true;
@@ -641,7 +642,7 @@ void rgbParty(){
         RGB_RED.setDigitalValue(1);   //Red
         RGB_GREEN.setDigitalValue(0);
         RGB_BLUE.setDigitalValue(0);
-        uBit.sleep(3000);
+        uBit.sleep(300);
         RGB_GREEN.setDigitalValue(1); //Yellow
         uBit.sleep(300);
         RGB_RED.setDigitalValue(0);   //Green
