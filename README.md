@@ -22,6 +22,28 @@ Android Client code respository:- https://gitlab.uwe.ac.uk/jd6-white/IoT-Task-3-
 
 Micro:bit code respository:- https://gitlab.uwe.ac.uk/jd6-white/iot_task_3
 
+## How to build
+
+Clone the entire repository
+
+   git clone https://gitlab.uwe.ac.uk/jd6-white/iot_task_3.git
+    
+Build the code for the microbit
+
+    yt build
+
+## How to run
+
+Copy the file to the microbit:
+
+    cp build/bbc-microbit-classic-gcc/source/iot-task-3-combined.hex /media/<user>/MICROBIT
+
+To read the serial device outupt:
+
+    sudo cat /dev/ttyACM0
+    
+Use the Android client to send encrypted commands to the Micro:bit. When prompted for the 3-digit PIN entry on the Micro:bit, use Button-A to change the PIN value, and Button-B to select the digit value.
+
 ## Micro:bit Code Description
 
 The following files implement the Micro:bit solution:
