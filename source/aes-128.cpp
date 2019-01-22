@@ -452,19 +452,3 @@ void AES_ECB_decrypt(struct AES_ctx* ctx, uint8_t* buf)
 
 #endif // #if defined(ECB) && (ECB == 1)
 
-//int main(void)
-//{
-//    int exit = 0;
-//
-//    // Initialise the micro:bit runtime.
-//    uBit.init();
-//
-//    test_encrypt_ecb_verbose();
-//
-//    test_decrypt_ecb();
-//
-//    release_fiber();
-//
-//    return exit;
-//}
-//

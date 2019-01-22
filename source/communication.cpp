@@ -65,7 +65,7 @@ void generateDPK(char dpk[21], char salt[], char PIN[4]) {
     /* calculate hash on input string */
     SHA1(dpk, dpkInput, strlen(dpkInput));
 
-    // Debug output for SHA1 Hash. Convert Hex to ASCII for printing. Trruncate to 16
+    // Debug output for SHA1 Hash. Convert Hex to ASCII for printing. Truncate to 16
     for (offset = 0; offset < 16; offset++) {
         sprintf((hexresult + (2 * offset)), "%02x", dpk[offset] & 0xff);
     }

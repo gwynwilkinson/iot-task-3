@@ -186,7 +186,6 @@ void processBuzzerRequest(int serviceData) {
                 uBit.sleep(500);
         }
 
-
         // Send single note to the Buzzer
         BUZZER.setAnalogValue(511);     // square wave
         BUZZER.setAnalogPeriodUs(3823); // note C4 = freq 261.63Hz
@@ -239,7 +238,7 @@ void processBuzzerRequest(int serviceData) {
         FanfareOn = true;
 
         create_fiber(buzzFanfare);
-//                                  }
+
         // Send a notification back to the client
         sendAck(SERVICE_BUZZER, SERVICE_BUZZER_FANFARE, SERVICE_ACK_OK);
 
@@ -277,8 +276,6 @@ void buzzSiren(){
         break;
       }
     }
-
-
 }
 
 /***********************************************************

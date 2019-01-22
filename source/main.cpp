@@ -49,11 +49,7 @@ unsigned int digit[3] = {0,0,0};
 bool fButtonAWait = false;
 bool fButtonBWait = false;
 
-
-
-
 char perSessionSalt[6] = "";
-
 
 /***********************************************************
  *
@@ -366,10 +362,6 @@ void onButtonB(MicroBitEvent e)
                 // disable both buttons and flash the entered digit 3 times
                 fButtonAWait = true;
                 fButtonBWait = true;
-//                flashScreen();
-
-//                uBit.display.clear();
-//                uBit.sleep(200);
 
                 // store the entered digit
                 charKey[0] = charlookup[digit[0]];
@@ -393,7 +385,6 @@ void onButtonB(MicroBitEvent e)
                 // disable both buttons and flash the entered digit 3 times
                 fButtonAWait = true;
                 fButtonBWait = true;
-//                flashScreen();
 
                 // store the entered digit
                 charKey[1] = charlookup[digit[1]];
@@ -417,7 +408,6 @@ void onButtonB(MicroBitEvent e)
                 // disable both buttons and flash the entered digit 3 times
                 fButtonAWait = true;
                 fButtonBWait = true;
-//                flashScreen();
 
                 // store the entered digit
                 charKey[2] = charlookup[digit[2]];
