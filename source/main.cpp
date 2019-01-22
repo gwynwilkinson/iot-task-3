@@ -173,14 +173,14 @@ void onConnected(MicroBitEvent e) {
             int serviceID;
             int serviceData;
 
-            uBit.serial.send("Decoded Message:- ");
+            uBit.serial.send("Decoded Msg:- ");
             uBit.serial.send(decodedAsciiMsg);
             uBit.serial.send("\n");
 
             // Get the protocol version
             GET_PROTOCOL_VER(decodedAsciiMsg, protocolVersion);
 
-            uBit.serial.send("Protocol Version:- ");
+            uBit.serial.send("Prot Ver:- ");
             uBit.serial.send(protocolVersion);
             uBit.serial.send("\n");
 
@@ -191,7 +191,7 @@ void onConnected(MicroBitEvent e) {
                 // Determine if this is a Request or Acknowledgement
                 GET_REQ_ACK(decodedAsciiMsg, requestAcknowledge);
 
-                uBit.serial.send("Request Acknowledge Flag:- ");
+                uBit.serial.send("Request Ack Flag:- ");
                 uBit.serial.send(requestAcknowledge);
                 uBit.serial.send("\n");
 
@@ -207,13 +207,13 @@ void onConnected(MicroBitEvent e) {
                             // to decode all future messages.
                             GET_SALT(decodedAsciiMsg, perSessionSalt);
 
-                            uBit.serial.send("New Per Session Salt received. Salt = ");
+                            uBit.serial.send("New Salt = ");
                             uBit.serial.send(perSessionSalt);
                             uBit.serial.send("\n");
                             break;
 
                         case SERVICE_LED:
-                            uBit.serial.send("LED Service Requested:- Request Data = ");
+                            uBit.serial.send("LED Service:- Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
 
@@ -222,7 +222,7 @@ void onConnected(MicroBitEvent e) {
                             break;
 
                         case SERVICE_BUZZER:
-                            uBit.serial.send("Buzzer Service Requested:- Request Data = ");
+                            uBit.serial.send("Buzzer Service:- Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
 
@@ -230,7 +230,7 @@ void onConnected(MicroBitEvent e) {
                             break;
 
                         case SERVICE_FAN:
-                            uBit.serial.send("Fan Service Requested:- Request Data = ");
+                            uBit.serial.send("Fan Service:- Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
 
@@ -238,7 +238,7 @@ void onConnected(MicroBitEvent e) {
                             break;
 
                         case SERVICE_RGB_LED:
-                            uBit.serial.send("RGB LED Service Requested:- Request Data = ");
+                            uBit.serial.send("RGB LED Service:- Data = ");
                             uBit.serial.send(serviceData);
                             uBit.serial.send("\n");
 
@@ -249,20 +249,20 @@ void onConnected(MicroBitEvent e) {
                             // Currently Unsupported Service request.
                             // Send a notification back to the client
                             sendAck(SERVICE_ID_UNKNOWN, SERVICE_UNKNOWN, SERVICE_ACK_OK);
-                            uBit.serial.send("Unsupported Service request:- ");
+                            uBit.serial.send("Unsupported request:- ");
                             uBit.serial.send("\n");
 
                             break;
                     }
                 } else {
                     // Currently no Acknowledgements are supported from the Android Client
-                    uBit.serial.send("Unsupported Acknowledgement:- ");
+                    uBit.serial.send("Unsupported Ack:- ");
                     uBit.serial.send("\n");
                 }
             } else {
                 // Unknown Protocol Version received. Currently only 1 version supported
                 // No backwards compatibility code implemented at this time.
-                uBit.serial.send("Unsupported Protocol Version:- ");
+                uBit.serial.send("Unsupported Prot Ver:- ");
                 uBit.serial.send("\n");
             }
         } else {
