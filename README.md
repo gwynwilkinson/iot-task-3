@@ -26,7 +26,7 @@ Micro:bit code repository:- https://gitlab.uwe.ac.uk/jd6-white/iot_task_3
 
 Clone the entire repository
 
-   git clone https://gitlab.uwe.ac.uk/jd6-white/iot_task_3.git
+    git clone https://gitlab.uwe.ac.uk/jd6-white/iot_task_3.git
     
 Build the code for the microbit
 
